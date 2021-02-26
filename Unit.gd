@@ -2,6 +2,7 @@ extends KinematicBody
 
 class_name Unit
 
+var current_target_location: Vector3
 var path = []
 var path_ind = 0
 const move_speed = 12
@@ -20,7 +21,8 @@ func _ready() -> void:
 		body.material_override = red_mat
 
 
-func move_to(target_pos):
+func move_to(target_pos: Vector3):
+	current_target_location = target_pos
 	path = nav.get_simple_path(global_transform.origin, target_pos)
 	path_ind = 0
 
@@ -35,8 +37,8 @@ func _physics_process(delta):
 		if move_vec.length() < 0.1:
 			path_ind += 1
 		else:
-			var _vel = move_and_slide(move_vec.normalized() * move_speed, Vector3(0, 1, 0))
 			face_direction(move_vec, delta)
+			var _vel = move_and_slide(move_vec.normalized() * move_speed, Vector3(0, 1, 0))
 
 
 func face_direction(dir: Vector3, delta: float):
@@ -51,25 +53,44 @@ func face_direction(dir: Vector3, delta: float):
 # The spells to cast (mostly for animations when server comes i guess?)
 
 
-func cast_spell_1() -> void:
+# Shield
+func cast_shield() -> void:
+	print(self, " casted shield")
 	pass
 
 
-func cast_spell_2() -> void:
+# Blink
+func cast_blink(pos: Vector3) -> void:
+	print(self, " casted blink")
+	global_transform.origin = pos
+	move_to(current_target_location)
+
+
+# Slash
+func cast_slash(pos: Vector3) -> void:
+	print(self, " casted slash")
 	pass
 
 
-func cast_spell_3() -> void:
+# Stone
+func cast_stone() -> void:
+	print(self, " casted stone")
 	pass
 
 
-func cast_spell_4() -> void:
+# Dagger
+func cast_dagger(target: KinematicBody) -> void:
+	print(self, " casted dagger")
 	pass
 
 
-func cast_spell_5() -> void:
+func attack() -> void:
 	pass
 
 
-func cast_spell_6() -> void:
-	pass
+func stop() -> void:
+	path = []
+
+
+func die() -> void:
+	print("dead")

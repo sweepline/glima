@@ -18,13 +18,31 @@ func _ready() -> void:
 		enemy.connect("mouse_exited", self, "unset_target", [enemy])
 
 
-func _process(_delta: float) -> void:
-	if Input.is_action_just_pressed("menu"):
+func _input(event: InputEvent) -> void:
+	var m_pos = get_viewport().get_mouse_position()
+	# abilities
+	if event.is_action_pressed("spell_1"):
+		player.cast_shield()
+	if event.is_action_pressed("spell_2"):
+		player.cast_blink(raycast_from_mouse(m_pos))
+	if event.is_action_pressed("spell_3"):
+		player.cast_slash(raycast_from_mouse(m_pos))
+	if event.is_action_pressed("spell_4"):
+		player.cast_stone()
+	if event.is_action_pressed("spell_5"):
+		player.cast_dagger(target_unit)
+	if event.is_action_pressed("stop_move"):
+		player.stop()
+
+	if event.is_action_pressed("menu"):
 		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 
 	if Input.is_action_just_pressed("main_move"):
-		var m_pos = get_viewport().get_mouse_position()
 		move_player(m_pos)
+
+
+func _process(_delta: float) -> void:
+	pass
 
 
 func move_player(m_pos: Vector2):
@@ -53,6 +71,7 @@ func set_target(enemy) -> void:
 	target_reticle = click_effect.instance()
 	enemy.add_child(target_reticle)
 	target_reticle.translate(Vector3(0, 0, 0.01))
+	target_reticle.scale = Vector3(3, 3, 3)
 
 
 func unset_target(enemy) -> void:
