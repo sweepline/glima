@@ -1,6 +1,8 @@
 extends Spatial
 
-var click_effect = preload("res://ClickCircle.tscn")
+var target_circle = preload("res://ClickCircle.tscn")
+onready var click_circle: MeshInstance = $ClickCircle
+
 onready var camera_controller: Spatial = $CameraController
 const floor_plane = Plane(0, 1, 0, 0)
 
@@ -11,15 +13,36 @@ onready var player = get_tree().get_nodes_in_group("player").pop_back()
 var target_unit: KinematicBody
 var target_reticle: MeshInstance
 
+enum { NORMAL_MOVE, ATTACK_MOVE }
+
 
 func _ready() -> void:
+	click_circle.visible = false
 	for enemy in get_tree().get_nodes_in_group("enemy"):
 		enemy.connect("mouse_entered", self, "set_target", [enemy])
 		enemy.connect("mouse_exited", self, "unset_target", [enemy])
 
 
 func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("menu"):
+		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+
+	if player.dead:
+		return
 	var m_pos = get_viewport().get_mouse_position()
+
+	if event.is_action_pressed("main_move"):
+		if target_unit != null:
+			player.attack_unit(target_unit)
+			target_reticle.red()
+		else:
+			move_player(m_pos, NORMAL_MOVE)
+	if event.is_action_pressed("attack_move"):
+		if target_unit != null:
+			player.attack_unit(target_unit)
+			target_reticle.red()
+		else:
+			move_player(m_pos, ATTACK_MOVE)
 	# abilities
 	if event.is_action_pressed("spell_1"):
 		player.cast_shield()
@@ -33,28 +56,30 @@ func _input(event: InputEvent) -> void:
 		player.cast_dagger(target_unit)
 	if event.is_action_pressed("stop_move"):
 		player.stop()
-
-	if event.is_action_pressed("menu"):
-		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-
-	if Input.is_action_just_pressed("main_move"):
-		move_player(m_pos)
+		if target_reticle != null:
+			target_reticle.green()
 
 
 func _process(_delta: float) -> void:
 	pass
 
 
-func move_player(m_pos: Vector2):
+func move_player(m_pos: Vector2, type):
 	var result = raycast_from_mouse(m_pos)
 	if result:
-		player.move_to(result)
-
 		# Make an effect on the point clicked
-		var click_effect_inst = click_effect.instance()
-		get_tree().get_root().add_child(click_effect_inst)
-		click_effect_inst.global_transform.origin = Vector3(result.x, 0.01, result.z)
-		var anim_player = click_effect_inst.get_node("AnimationPlayer")
+		click_circle.global_transform.origin = Vector3(result.x, 0.01, result.z)
+		click_circle.rotation = Vector3(-PI / 2, 0, 0)
+		match type:
+			NORMAL_MOVE:
+				player.move_to(result)
+				click_circle.green()
+			ATTACK_MOVE:
+				player.attack_move(result)
+				click_circle.red()
+		var anim_player = click_circle.get_node("AnimationPlayer")
+		if anim_player.is_playing():
+			anim_player.stop()
 		anim_player.play("scale_down")
 
 
@@ -68,7 +93,7 @@ func set_target(enemy) -> void:
 	target_unit = enemy
 	if target_reticle != null:
 		target_reticle.queue_free()
-	target_reticle = click_effect.instance()
+	target_reticle = target_circle.instance()
 	enemy.add_child(target_reticle)
 	target_reticle.translate(Vector3(0, 0, 0.01))
 	target_reticle.scale = Vector3(3, 3, 3)

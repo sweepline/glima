@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=2]
+[gd_scene load_steps=9 format=2]
 
 [ext_resource path="res://Unit.gd" type="Script" id=1]
 [ext_resource path="res://BlueUnit.tres" type="Material" id=2]
@@ -15,6 +15,13 @@ mid_height = 2.0
 [sub_resource type="SphereMesh" id=4]
 material = SubResource( 3 )
 
+[sub_resource type="SpatialMaterial" id=6]
+flags_transparent = true
+albedo_color = Color( 0.639216, 0.247059, 0.858824, 0.603922 )
+
+[sub_resource type="SphereMesh" id=5]
+material = SubResource( 6 )
+
 [node name="Unit" type="KinematicBody"]
 collision_layer = 2
 collision_mask = 2
@@ -30,6 +37,20 @@ mesh = SubResource( 2 )
 material/0 = null
 
 [node name="Face" type="MeshInstance" parent="."]
-transform = Transform( 0.503852, 0, 0, 0, 0.503852, 0, 0, 0, 0.503852, 0, 2.8389, 0.902107 )
+transform = Transform( 0.503852, 0, 0, 0, 0.503852, 0, 0, 0, 0.503852, 0, 2.839, -0.902 )
 mesh = SubResource( 4 )
 material/0 = null
+
+[node name="Shield" type="MeshInstance" parent="."]
+transform = Transform( 1.93807, 0, 0, 0, 1.93807, 0, 0, 0, 1.93807, 0, 2.60315, 0 )
+visible = false
+mesh = SubResource( 5 )
+material/0 = null
+
+[node name="ShieldTimer" type="Timer" parent="."]
+one_shot = true
+
+[node name="StoneTimer" type="Timer" parent="."]
+one_shot = true
+[connection signal="timeout" from="ShieldTimer" to="." method="end_shield"]
+[connection signal="timeout" from="StoneTimer" to="." method="end_stone"]
