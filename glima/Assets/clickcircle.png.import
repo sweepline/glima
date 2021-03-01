@@ -2,8 +2,8 @@
 
 importer="texture"
 type="StreamTexture"
-path.s3tc="res://.import/clickcircle.png-f83607a9076ea6c6cbb8b29790daa5e9.s3tc.stex"
-path.etc2="res://.import/clickcircle.png-f83607a9076ea6c6cbb8b29790daa5e9.etc2.stex"
+path.s3tc="res://.import/clickcircle.png-a5f34b766f4fd5b0822e9b6fd1df95ce.s3tc.stex"
+path.etc2="res://.import/clickcircle.png-a5f34b766f4fd5b0822e9b6fd1df95ce.etc2.stex"
 metadata={
 "imported_formats": [ "s3tc", "etc2" ],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://clickcircle.png"
-dest_files=[ "res://.import/clickcircle.png-f83607a9076ea6c6cbb8b29790daa5e9.s3tc.stex", "res://.import/clickcircle.png-f83607a9076ea6c6cbb8b29790daa5e9.etc2.stex" ]
+source_file="res://Assets/clickcircle.png"
+dest_files=[ "res://.import/clickcircle.png-a5f34b766f4fd5b0822e9b6fd1df95ce.s3tc.stex", "res://.import/clickcircle.png-a5f34b766f4fd5b0822e9b6fd1df95ce.etc2.stex" ]
 
 [params]
 

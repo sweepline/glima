@@ -14,13 +14,13 @@ var dead = false
 onready var nav: Navigation = get_parent()
 onready var shape: CollisionShape = $CollisionShape
 onready var body: MeshInstance = $Body
-onready var slash_area = preload("res://SlashArea.tscn")
-onready var dagger = preload("res://Dagger.tscn")
+onready var slash_area = preload("res://Scenes/Instances/SlashArea.tscn")
+onready var dagger = preload("res://Scenes/Instances/Dagger.tscn")
 
 var colors = {
-	"blue": preload("res://BlueUnit.tres"),
-	"red": preload("res://RedUnit.tres"),
-	"grey": preload("res://GreyUnit.tres")
+	"blue": preload("res://Materials/BlueUnit.tres"),
+	"red": preload("res://Materials/RedUnit.tres"),
+	"grey": preload("res://Materials/GreyUnit.tres")
 }
 var normal_color = "blue"
 

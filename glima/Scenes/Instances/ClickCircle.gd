@@ -1,8 +1,8 @@
 extends MeshInstance
 
 var colors = {
-	"green": preload("res://GreenClickCircle.tres"),
-	"red": preload("res://RedClickCircle.tres"),
+	"green": preload("res://Materials/GreenClickCircle.tres"),
+	"red": preload("res://Materials/RedClickCircle.tres"),
 }
 
 

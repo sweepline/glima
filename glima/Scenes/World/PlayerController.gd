@@ -1,6 +1,6 @@
 extends Spatial
 
-var target_circle = preload("res://ClickCircle.tscn")
+var target_circle = preload("res://Scenes/Instances/ClickCircle.tscn")
 onready var click_circle: MeshInstance = $ClickCircle
 
 onready var camera_controller: Spatial = $CameraController
