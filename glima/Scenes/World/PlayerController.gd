@@ -22,10 +22,15 @@ func _ready() -> void:
 		enemy.connect("mouse_entered", self, "set_target", [enemy])
 		enemy.connect("mouse_exited", self, "unset_target", [enemy])
 
+func test_print_player_stats(stats):
+	print("Player stats: ", stats)
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("menu"):
 		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	if event.is_action_pressed("scoreboard"):
+		if Server.connected:
+			Server.fetch_player_stats()
 
 	if player.dead:
 		return

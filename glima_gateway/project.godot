@@ -15,14 +15,14 @@ _global_script_class_icons={
 
 [application]
 
-config/name="glima_server"
+config/name="glima_gateway"
 run/main_scene="res://Scenes/Main/Server.tscn"
 config/icon="res://icon.png"
 
 [autoload]
 
-GameData="*res://Scenes/Singletons/GameData.gd"
 Authenticate="*res://Scenes/Singletons/Authenticate.gd"
+Gateway="*res://Scenes/Singletons/Gateway.gd"
 
 [rendering]
 
