@@ -5,7 +5,7 @@ var gateway_api = MultiplayerAPI.new()
 var ip = "127.0.0.1"
 var port = 1912
 
-onready var gameserver = get_node("/root/Server")
+onready var gameserver = get_node("/root/GameServer")
 
 func _ready():
 	connect_to_server()

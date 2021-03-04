@@ -55,6 +55,11 @@ func _physics_process(delta):
 			var _vel = move_and_slide(move_vec.normalized() * move_speed, Vector3(0, 1, 0))
 
 
+func move_player(pos: Vector3, basis: Quat):
+	global_transform.origin = pos
+	global_transform.basis = basis
+
+
 func face_direction(_dir: Vector3, delta: float):
 	var dir = -_dir  # Front is -Z
 	var angle_diff = global_transform.basis.z.angle_to(dir)
@@ -63,6 +68,11 @@ func face_direction(_dir: Vector3, delta: float):
 		rotation.y = atan2(dir.x, dir.z)  # angle, x and z because y is up
 	else:
 		rotation.y += turn_speed * delta * turn_right
+
+func face_towards(point: Vector3):
+	look_at(point, Vector3.UP)
+	rotation.x = 0
+	rotation.z = 0
 
 
 func move_to(target_pos: Vector3):
@@ -118,7 +128,7 @@ func cast_blink(pos: Vector3) -> void:
 		return
 
 	stop()
-	look_at(pos, Vector3.UP)
+	face_towards(pos)
 	disjoint_dagger()
 
 	var save_y = global_transform.origin.y
@@ -150,7 +160,7 @@ func cast_slash(cast_point: Vector3) -> void:
 		return
 
 	stop()
-	look_at(cast_point, Vector3.UP)
+	face_towards(cast_point)
 	var slash_area_inst = slash_area.instance()
 	get_tree().get_root().add_child(slash_area_inst)
 	slash_area_inst.start(global_transform.origin, cast_point, self)
@@ -193,12 +203,14 @@ func cast_dagger(target: KinematicBody) -> void:
 		return
 	if target == null:
 		return
-	if global_transform.origin.distance_to(target.global_transform.origin) > RANGE:
-		return
 	if cooldowns[spell_id] > 0:
 		return
 
-	look_at(target.global_transform.origin, Vector3.UP)
+	if global_transform.origin.distance_to(target.global_transform.origin) > RANGE:
+		return
+
+	face_towards(target.global_transform.origin)
+	
 	var dagger_inst = dagger.instance()
 	get_tree().get_root().add_child(dagger_inst)
 	dagger_inst.start(global_transform.origin, target, self)
@@ -250,6 +262,6 @@ func hit(spell: String, caster) -> void:
 func die():
 	disjoint_dagger()
 	stop()
-	global_transform.origin.y = -8
+	global_transform.origin.y = -10
 	visible = false
 	dead = true

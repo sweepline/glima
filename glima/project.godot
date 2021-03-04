@@ -12,7 +12,7 @@ _global_script_classes=[ {
 "base": "KinematicBody",
 "class": "Unit",
 "language": "GDScript",
-"path": "res://Scenes/Instances/Unit.gd"
+"path": "res://Scenes/Instances/Player.gd"
 } ]
 _global_script_class_icons={
 "Unit": ""
@@ -21,12 +21,12 @@ _global_script_class_icons={
 [application]
 
 config/name="glima"
-run/main_scene="res://Scenes/World/World.tscn"
+run/main_scene="res://Scenes/Main/Main.tscn"
 config/icon="res://icon.png"
 
 [autoload]
 
-Server="*res://Scenes/Singletons/Server.gd"
+GameServer="*res://Scenes/Singletons/GameServer.gd"
 GameData="*res://Scenes/Singletons/GameData.gd"
 Gateway="*res://Scenes/Singletons/Gateway.gd"
 

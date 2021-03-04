@@ -1,12 +1,7 @@
 [gd_scene load_steps=9 format=2]
 
-[ext_resource path="res://Scenes/Instances/Unit.gd" type="Script" id=1]
+[ext_resource path="res://Scenes/Instances/Player.gd" type="Script" id=1]
 [ext_resource path="res://Materials/BlueUnit.tres" type="Material" id=2]
-
-
-
-
-
 
 [sub_resource type="CapsuleShape" id=1]
 height = 2.0
@@ -20,12 +15,12 @@ mid_height = 2.0
 [sub_resource type="SphereMesh" id=4]
 material = SubResource( 3 )
 
-[sub_resource type="SpatialMaterial" id=6]
+[sub_resource type="SpatialMaterial" id=5]
 flags_transparent = true
 albedo_color = Color( 0.639216, 0.247059, 0.858824, 0.603922 )
 
-[sub_resource type="SphereMesh" id=5]
-material = SubResource( 6 )
+[sub_resource type="SphereMesh" id=6]
+material = SubResource( 5 )
 
 [node name="Unit" type="KinematicBody"]
 collision_layer = 2
@@ -49,7 +44,7 @@ material/0 = null
 [node name="Shield" type="MeshInstance" parent="."]
 transform = Transform( 1.93807, 0, 0, 0, 1.93807, 0, 0, 0, 1.93807, 0, 2.60315, 0 )
 visible = false
-mesh = SubResource( 5 )
+mesh = SubResource( 6 )
 material/0 = null
 
 [node name="ShieldTimer" type="Timer" parent="."]

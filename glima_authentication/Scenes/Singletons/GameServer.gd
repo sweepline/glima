@@ -35,6 +35,7 @@ func _on_peer_connected(gameserver_id):
 
 func _on_peer_disconnected(gateway_id):
 	print("Gameserver " + str(gateway_id) + " disconnected")
+	gameserverlist.erase(gateway_id)
 
 func distribute_login_token(token, gameserver):
 	var gameserver_peer_id = gameserverlist[gameserver]

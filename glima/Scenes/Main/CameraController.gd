@@ -16,6 +16,15 @@ var drag_m_start: Vector3
 var drag_m_prev: Vector2
 var drag_c_start: Vector3
 
+func enable():
+	set_process_input(true)
+	set_process(true)
+	set_physics_process(true)
+
+func disable():
+	set_process_input(true)
+	set_process(false)
+	set_physics_process(false)
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)

@@ -113,9 +113,9 @@ __meta__ = {
 }
 
 [node name="LoginButton" type="TextureButton" parent="Background/LoginContainer"]
-margin_left = 72.0
+margin_left = 73.0
 margin_top = 261.0
-margin_right = 262.0
+margin_right = 263.0
 margin_bottom = 310.0
 rect_min_size = Vector2( 190, 49 )
 size_flags_horizontal = 4
@@ -138,9 +138,9 @@ __meta__ = {
 }
 
 [node name="CreateAccountButton" type="TextureButton" parent="Background/LoginContainer"]
-margin_left = 72.0
+margin_left = 73.0
 margin_top = 314.0
-margin_right = 262.0
+margin_right = 263.0
 margin_bottom = 363.0
 rect_min_size = Vector2( 190, 49 )
 size_flags_horizontal = 4

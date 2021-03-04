@@ -1,6 +1,7 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=5 format=2]
 
 [ext_resource path="res://Materials/GreenClickCircle.tres" type="Material" id=1]
+[ext_resource path="res://Scenes/Instances/ClickCircle.gd" type="Script" id=2]
 
 [sub_resource type="QuadMesh" id=1]
 material = ExtResource( 1 )
@@ -38,6 +39,7 @@ transform = Transform( 2, 0, 0, 0, -8.74228e-08, 2, 0, -2, -8.74228e-08, 0, 0, 0
 cast_shadow = 0
 mesh = SubResource( 1 )
 material/0 = null
+script = ExtResource( 2 )
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 anims/scale_down = SubResource( 2 )

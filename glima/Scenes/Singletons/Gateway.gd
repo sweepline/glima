@@ -4,6 +4,7 @@ var network: NetworkedMultiplayerENet
 var gateway_api: MultiplayerAPI
 var ip = "127.0.0.1"
 var port = 1910
+var cert = load("res://Data/certificates/gateway.crt")
 
 var username
 var password
@@ -24,6 +25,9 @@ func _process(_delta):
 func connect_to_server(_username, _password):
 	network = NetworkedMultiplayerENet.new()
 	gateway_api = MultiplayerAPI.new()
+	network.use_dtls = true
+	network.dtls_verify = false
+	network.set_dtls_certificate(cert)
 	username = _username
 	password = _password
 	network.create_client(ip, port)
@@ -51,14 +55,15 @@ func request_login():
 	username = ""
 	password = ""
 
+
 remote func return_login_request(result, token):
-	print("Login request result recieved")
+	print("Login request result received")
 	if result == true:
-		Server.token = token
-		Server.connect_to_server()
+		GameServer.token = token
+		GameServer.connect_to_server()
 	else:
 		print("Username or password is incorrect")
 		get_node("../World/LoginScreen").login_button.disabled = false
-	
+
 	network.disconnect("connection_succeeded", self, "_on_connection_succeeded")
 	network.disconnect("connection_failed", self, "_on_connection_failed")

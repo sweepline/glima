@@ -7,7 +7,8 @@ onready var camera_controller: Spatial = $CameraController
 const floor_plane = Plane(0, 1, 0, 0)
 
 # Player node, assume only one for now
-onready var player = get_tree().get_nodes_in_group("player").pop_back()
+var player: KinematicBody = null
+var player_state
 
 # Target when hovering
 var target_unit: KinematicBody
@@ -16,22 +17,44 @@ var target_reticle: MeshInstance
 enum { NORMAL_MOVE, ATTACK_MOVE }
 
 
+func set_player(_player: KinematicBody):
+	player = _player
+	set_process(true)
+	set_process_input(true)
+	set_physics_process(true)
+
+
 func _ready() -> void:
+	set_process_input(false)
+	set_physics_process(false)
+	set_process(false)
 	click_circle.visible = false
-	for enemy in get_tree().get_nodes_in_group("enemy"):
-		enemy.connect("mouse_entered", self, "set_target", [enemy])
-		enemy.connect("mouse_exited", self, "unset_target", [enemy])
+	#for enemy in get_tree().get_nodes_in_group("enemy"):
+	#	enemy.connect("mouse_entered", self, "set_target", [enemy])
+	#	enemy.connect("mouse_exited", self, "unset_target", [enemy])
+
+
+func define_player_state():
+	# I think we want to use flatbuffers at some point for smaller packets
+	var rot_quat = player.global_transform.basis.get_rotation_quat()
+	player_state = {
+		"t": GameServer.client_clock,
+		"p": Vector2(player.global_transform.origin.x, player.global_transform.origin.z),
+		"r": Vector2(rot_quat.y, rot_quat.w)
+	}
+	GameServer.send_player_state(player_state)
+
+
+func _physics_process(_delta):
+	define_player_state()
+	pass
+
 
 func test_print_player_stats(stats):
 	print("Player stats: ", stats)
 
-func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("menu"):
-		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-	if event.is_action_pressed("scoreboard"):
-		if Server.connected:
-			Server.fetch_player_stats()
 
+func _input(event: InputEvent) -> void:
 	if player.dead:
 		return
 	var m_pos = get_viewport().get_mouse_position()
