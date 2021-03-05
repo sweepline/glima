@@ -1,20 +1,21 @@
 extends Spatial
 
 var map: Navigation
-var unit_res = preload("res://Scenes/Instances/Player.tscn")
+var unit_res = preload("res://Scenes/Instances/PlayerUnit.tscn")
 onready var playerController = $PlayerController
 
 var last_world_state = 0
 # Should be kept as
 # [past_past_state, most_recent_past_state, nearest_future_state, any_other_future_state]
 var world_state_buffer: Array = []
-const INTERPOLATION_OFFSET = 50
+const INTERPOLATION_OFFSET = 50  # Basically the lag compensation
 
 
 func _ready():
 	# Make into some map load on demand thing
 	var map_res = load("res://Scenes/World/Maps/RedMap.tscn")
 	map = map_res.instance()
+	map.name = "Map"
 	add_child(map)
 
 
@@ -42,6 +43,10 @@ func spawn_new_player(player_id: int, spawn_position: Vector2, spawn_rotation = 
 func despawn_player(player_id):
 	yield(get_tree().create_timer(0.2), "timeout")
 	map.get_node(str(player_id)).queue_free()
+
+
+func spell_cast(spell, options, cast_time, player_id):
+	map.get_node(str(player_id)).cast_spell(spell, options, cast_time)
 
 
 func update_world_state(world_state):

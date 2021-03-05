@@ -57,6 +57,8 @@ func request_login():
 
 
 remote func return_login_request(result, token):
+	if get_tree().get_rpc_sender_id() != 1:
+		return
 	print("Login request result received")
 	if result == true:
 		GameServer.token = token

@@ -8,9 +8,14 @@
 
 config_version=4
 
-_global_script_classes=[  ]
+_global_script_classes=[ {
+"base": "KinematicBody",
+"class": "Unit",
+"language": "GDScript",
+"path": "res://Scenes/Instances/ServerPlayer.gd"
+} ]
 _global_script_class_icons={
-
+"Unit": ""
 }
 
 [application]
@@ -23,10 +28,6 @@ config/icon="res://icon.png"
 
 GameData="*res://Scenes/Singletons/GameData.gd"
 Authenticate="*res://Scenes/Singletons/Authenticate.gd"
-
-[physics]
-
-common/physics_fps=30
 
 [rendering]
 

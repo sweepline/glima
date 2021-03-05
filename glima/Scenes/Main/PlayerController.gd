@@ -16,6 +16,14 @@ var target_reticle: MeshInstance
 
 enum { NORMAL_MOVE, ATTACK_MOVE }
 
+# Unit things
+# Spell things
+var cooldowns: Array = [0, 0, 0, 0, 0]
+var shield_active = false
+var stone_active = false
+var attack_moving = false
+var attacking_unit: KinematicBody = null
+
 
 func set_player(_player: KinematicBody):
 	player = _player
@@ -45,6 +53,13 @@ func define_player_state():
 	GameServer.send_player_state(player_state)
 
 
+func _process(delta):
+	for i in range(0, cooldowns.size()):
+		var cooldown = cooldowns[i]
+		if cooldown > 0:
+			cooldowns[i] = max(cooldown - delta, 0)
+
+
 func _physics_process(_delta):
 	define_player_state()
 	pass
@@ -60,12 +75,20 @@ func _input(event: InputEvent) -> void:
 	var m_pos = get_viewport().get_mouse_position()
 
 	if event.is_action_pressed("main_move"):
+		if not $StoneTimer.is_stopped():
+			$StoneTimer.stop()
+			player.end_stone()
+
 		if target_unit != null:
 			player.attack_unit(target_unit)
 			target_reticle.red()
 		else:
 			move_player(m_pos, NORMAL_MOVE)
 	if event.is_action_pressed("attack_move"):
+		if not $StoneTimer.is_stopped():
+			$StoneTimer.stop()
+			player.end_stone()
+
 		if target_unit != null:
 			player.attack_unit(target_unit)
 			target_reticle.red()
@@ -73,23 +96,19 @@ func _input(event: InputEvent) -> void:
 			move_player(m_pos, ATTACK_MOVE)
 	# abilities
 	if event.is_action_pressed("spell_1"):
-		player.cast_shield()
+		cast_shield()
 	if event.is_action_pressed("spell_2"):
-		player.cast_blink(raycast_from_mouse(m_pos))
+		cast_blink(raycast_from_mouse(m_pos))
 	if event.is_action_pressed("spell_3"):
-		player.cast_slash(raycast_from_mouse(m_pos))
+		cast_slash(raycast_from_mouse(m_pos))
 	if event.is_action_pressed("spell_4"):
-		player.cast_stone()
+		cast_stone()
 	if event.is_action_pressed("spell_5"):
-		player.cast_dagger(target_unit)
+		cast_dagger(target_unit)
 	if event.is_action_pressed("stop_move"):
 		player.stop()
 		if target_reticle != null:
 			target_reticle.green()
-
-
-func _process(_delta: float) -> void:
-	pass
 
 
 func move_player(m_pos: Vector2, type):
@@ -132,3 +151,123 @@ func unset_target(enemy) -> void:
 		target_unit = null
 		if target_reticle != null:
 			target_reticle.queue_free()
+
+
+# Shield
+func cast_shield() -> void:
+	var spell_id = 0
+	var COOLDOWN = 2
+	var DURATION = 0.7
+
+	if stone_active:
+		return
+	if cooldowns[spell_id] > 0:
+		return
+
+	#player.get_node("Shield").visible = true
+	$ShieldTimer.wait_time = DURATION
+	$ShieldTimer.start()
+	shield_active = true
+
+	GameServer.cast_spell(GameData.spells.SHIELD, {})
+
+	cooldowns[spell_id] = DURATION + COOLDOWN
+
+
+func end_shield() -> void:
+	#player.end_shield()
+	shield_active = false
+
+
+# Blink
+func cast_blink(pos: Vector3) -> void:
+	var spell_id = 1
+	var COOLDOWN = 4
+	var RANGE = 30
+
+	if stone_active:
+		return
+	if cooldowns[spell_id] > 0:
+		return
+
+	#disjoint_dagger()
+	var blink_point
+	if pos.distance_to(player.global_transform.origin) < RANGE:
+		blink_point = pos
+	else:
+		blink_point = global_transform.origin.move_toward(pos, RANGE)
+
+	GameServer.cast_spell(GameData.spells.BLINK, {"p": pos})
+	# player.cast_blink(blink_point)
+
+	cooldowns[spell_id] = COOLDOWN
+
+
+func disjoint_dagger():
+	get_tree().call_group("dagger", "blink_disjoint", self, global_transform.origin)
+
+
+# Slash
+func cast_slash(cast_point: Vector3) -> void:
+	var spell_id = 2
+	var COOLDOWN = 2
+
+	if stone_active:
+		return
+	if cooldowns[spell_id] > 0:
+		return
+
+	GameServer.cast_spell(GameData.spells.SLASH, {"p": cast_point})
+	# player.cast_slash(cast_point)
+	cooldowns[spell_id] = COOLDOWN
+
+
+# Stone
+func cast_stone() -> void:
+	var spell_id = 3
+	var COOLDOWN = 12
+	var DURATION = 6
+
+	if stone_active:
+		return
+	if cooldowns[spell_id] > 0:
+		return
+
+	GameServer.cast_spell(GameData.spells.STONE, {})
+	# player.cast_stone()
+	$StoneTimer.wait_time = DURATION
+	$StoneTimer.start()
+	stone_active = true
+
+	cooldowns[spell_id] = DURATION + COOLDOWN
+
+
+func end_stone() -> void:
+	stone_active = false
+	player.end_stone()
+
+
+# Dagger
+func cast_dagger(target: KinematicBody) -> void:
+	var spell_id = 4
+	var COOLDOWN = 5
+	var RANGE = 40
+
+	if stone_active:
+		return
+	if target == null:
+		return
+	if cooldowns[spell_id] > 0:
+		return
+
+	if player.global_transform.origin.distance_to(target.global_transform.origin) > RANGE:
+		return
+
+	GameServer.cast_spell(GameData.spells.DAGGER, {"u": target_unit.name})
+	# player.cast_dagger(target)
+
+	cooldowns[spell_id] = COOLDOWN
+
+
+func refresh_spells():
+	cooldowns = [0, 0, 0, 0, 0]

@@ -8,6 +8,7 @@ var player_state_collection = {}
 
 onready var player_verification_process = get_node("PlayerVerification")
 onready var combat_functions = get_node("Combat")
+onready var player_res = preload("res://Scenes/Instances/ServerPlayer.tscn")
 
 var expected_tokens: Array = []
 
@@ -34,6 +35,7 @@ func _on_peer_disconnected(player_id):
 	if has_node(str(player_id)):
 		get_node(str(player_id)).queue_free()
 		rpc_id(0, "despawn_player", player_id)
+		get_node("World/Map/" + str(player_id)).queue_free()
 		player_state_collection.erase(player_id)
 		
 func _on_timer_expiration_timeout():
@@ -72,6 +74,10 @@ func return_token_verification_results(player_id, result):
 	rpc_id(player_id, "return_token_verification_results", result)
 	if result == true:
 		rpc_id(0, "spawn_new_player", player_id, Vector3(0,0,0))
+		var player_inst = player_res.instance()
+		get_node("World/Map").add_child(player_inst)
+		player_inst.name = str(player_id)
+		player_inst.global_transform.origin = Vector3(0, 0.4, 0)
 
 remote func receive_player_state(player_state):
 	var player_id = get_tree().get_rpc_sender_id()
@@ -83,6 +89,11 @@ remote func receive_player_state(player_state):
 
 func send_world_state(world_state):
 	rpc_unreliable_id(0, "receive_world_state", world_state)
+
+remote func cast_spell(spell, options, cast_time):
+	var player_id = get_tree().get_rpc_sender_id()
+	# We need to verify it can be done
+	rpc_id(0, "receive_spell", spell, options, cast_time, player_id)
 
 remote func fetch_player_stats():
 	var player_id = get_tree().get_rpc_sender_id()

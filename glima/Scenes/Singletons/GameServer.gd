@@ -36,9 +36,13 @@ func connect_to_server():
 
 
 remote func spawn_new_player(player_id: int, position: Vector3):
+	if get_tree().get_rpc_sender_id() != 1:
+		return
 	get_node("/root/Main/World").spawn_new_player(player_id, Vector2(position.x, position.z))
 
 remote func despawn_player(player_id):
+	if get_tree().get_rpc_sender_id() != 1:
+		return
 	get_node("/root/Main/World").despawn_player(player_id)
 
 
@@ -47,6 +51,8 @@ func fetch_player_stats():
 
 
 remote func return_player_stats(stats):
+	if get_tree().get_rpc_sender_id() != 1:
+		return
 	get_node("/root/Main/World/PlayerController").test_print_player_stats(stats)
 
 
@@ -55,7 +61,27 @@ func send_player_state(player_state):
 
 
 remote func receive_world_state(world_state):
+	if get_tree().get_rpc_sender_id() != 1:
+		return
 	get_node("/root/Main/World").update_world_state(world_state)
+
+
+func cast_spell(spell, options):
+	rpc_id(1, "cast_spell", spell, options, client_clock)
+
+
+remote func receive_spell(spell, options, cast_time, player_id):
+	if get_tree().get_rpc_sender_id() != 1:
+		return
+	get_node("/root/Main/World").spell_cast(spell, options, cast_time, player_id)
+	if player_id == get_tree().get_network_unique_id():
+		print("SERVER_SAYS I CASTED A SPELL")
+		# Correct client side predictions
+		pass
+	else:
+		print("SERVER_SAYS SOMEONE ELSE CASTED A SPELL")
+		pass
+		#get_node("/root/Main/World")
 
 
 func _on_connection_succeeded():
@@ -70,6 +96,8 @@ func _on_connection_succeeded():
 
 
 remote func return_server_time(server_time, client_time):
+	if get_tree().get_rpc_sender_id() != 1:
+		return
 	# Actually there might be a difference between to and from server, but eh...
 	latency = (OS.get_system_time_msecs() - client_time) / 2
 	print(server_time)
@@ -81,6 +109,8 @@ func determine_latency():
 
 
 remote func return_latency(client_time):
+	if get_tree().get_rpc_sender_id() != 1:
+		return
 	latency_array.append((OS.get_system_time_msecs() - client_time) / 2)
 	if latency_array.size() == 9:
 		var total_latency = 0
@@ -103,9 +133,13 @@ func _on_connection_failed():
 
 
 remote func fetch_token():
+	if get_tree().get_rpc_sender_id() != 1:
+		return
 	rpc_id(1, "return_token", token)
 
 remote func return_token_verification_results(result):
+	if get_tree().get_rpc_sender_id() != 1:
+		return
 	if result == true:
 		get_node("/root/Main/LoginScreen").queue_free()
 		print("Succesfull token verification")

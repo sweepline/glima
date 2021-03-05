@@ -9,3 +9,6 @@ func _ready():
 	var skill_data_json = JSON.parse(skill_data_file.get_as_text())
 	skill_data_file.close()
 	skill_data = skill_data_json.result
+
+
+var spells = {SHIELD = 1, BLINK = 2, SLASH = 3, STONE = 4, DAGGER = 5}
