@@ -29,7 +29,7 @@ func _physics_process(delta):
 
 	var distance = global_transform.origin.distance_to(target_center)
 
-	if disjointed and distance < 1:
+	if disjointed and distance < 2:
 		queue_free()
 
 	var steer_force = range_lerp(distance, start_distance, 0, 0, 30)

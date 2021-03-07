@@ -2,7 +2,7 @@ extends Spatial
 
 var map: Navigation
 var unit_res = preload("res://Scenes/Instances/PlayerUnit.tscn")
-onready var playerController = $PlayerController
+onready var player_controller = $PlayerController
 
 var last_world_state = 0
 # Should be kept as
@@ -29,12 +29,12 @@ func spawn_new_player(player_id: int, spawn_position: Vector2, spawn_rotation = 
 	if player_id == get_tree().get_network_unique_id():
 		print("WE SPAWNED OURSELF")
 		new_player.add_to_group("player")
-		playerController.set_player(new_player)
-		playerController.activate()
+		player_controller.set_player(new_player)
+		player_controller.activate()
 	else:
 		new_player.add_to_group("enemy")  # TODO: TEAM SETUP
-		new_player.connect("mouse_entered", playerController, "set_target", [new_player])
-		new_player.connect("mouse_exited", playerController, "unset_target", [new_player])
+		new_player.connect("mouse_entered", player_controller, "set_target", [new_player])
+		new_player.connect("mouse_exited", player_controller, "unset_target", [new_player])
 	map.add_child(new_player)
 	new_player.move_player(
 		Vector3(spawn_position.x, 0.4, spawn_position.y),
@@ -53,7 +53,7 @@ func update_world_state(world_state):
 		world_state_buffer.append(world_state)
 
 
-func _physics_process(_delta):
+func _physics_process(delta):
 	var render_time = GameServer.client_clock - INTERPOLATION_OFFSET
 	if world_state_buffer.size() > 1:
 		# Make sure most_recent_past is actually that
@@ -68,13 +68,31 @@ func _physics_process(_delta):
 			for player_id in world_state_buffer[2].keys():
 				if str(player_id) == "t":
 					continue
-				#if player_id == get_tree().get_network_unique_id():
-				#	continue
 				if not world_state_buffer[1].has(player_id):
+					continue
+				
+				# If were interpolating check player against newest world
+				if player_id == get_tree().get_network_unique_id() and map.has_node(str(player_id)):
+					var state_buffer = player_controller.state_buffer
+					# The client might aswell look at the most recent world
+					var newest_world = world_state_buffer.back()
+					while state_buffer.size() > 1 and newest_world["t"] > state_buffer[0]["t"]:
+						state_buffer.remove(0)
+					var pos: Vector3 = state_buffer[0]["p"]
+					var rot: Quat = state_buffer[0]["r"]
+					var world_pos = Vector3(newest_world[player_id]["p"].x,	0.4,newest_world[player_id]["p"].y)
+					var world_rot = Quat(0, newest_world[player_id]["r"].x, 0, newest_world[player_id]["r"].y)
+					print(pos.distance_to(world_pos), ", ", state_buffer.size())
+					if pos.distance_to(world_pos) > 1 and player_controller.cooldowns[1] < GameData.spell_data["blink"].cooldown - 0.15:
+						# TODO: Lerp this for rubber-banding
+						print("PLAYER REPOSITIONED, BLINKCD: ", player_controller.cooldowns[1], " THRESH ", GameData.spell_data["blink"].cooldown - 0.15)
+						map.get_node(str(player_id)).move_player(world_pos, world_rot)
+						#map.get_node(str(player_id)).move_player(pos.linear_interpolate(world_pos, delta * 2), rot.slerp(world_rot, delta))						
+						map.get_node(str(player_id)).recalculate_nav()
 					continue
 				if map.has_node(str(player_id)):
 					var new_position: Vector3
-					# Do something special with blinking
+					# If we moved a lot, just let the player teleport
 					if (
 						world_state_buffer[1][player_id]["p"].distance_squared_to(
 							world_state_buffer[2][player_id]["p"]
@@ -98,6 +116,7 @@ func _physics_process(_delta):
 					var new_basis = Quat(0, old_rot.x, 0, old_rot.y).slerp(
 						Quat(0, new_rot.x, 0, new_rot.y), interpolation_factor
 					)
+					
 					map.get_node(str(player_id)).move_player(new_position, new_basis)
 				else:
 					spawn_new_player(
@@ -117,8 +136,8 @@ func _physics_process(_delta):
 			for player_id in world_state_buffer[1].keys():
 				if str(player_id) == "t":
 					continue
-				#if player_id == get_tree().get_network_unique_id():
-				#	continue
+				if player_id == get_tree().get_network_unique_id():
+					continue
 				if not world_state_buffer[0].has(player_id):
 					continue
 				if map.has_node(str(player_id)):
@@ -135,6 +154,7 @@ func _physics_process(_delta):
 					)
 
 	# For other global events
+	# It might be better to go through it forwards and stop, depending on size in real world applications
 	for i in range(event_buffer.size() - 1, -1, -1):
 		var event = event_buffer[i]
 		if event.t <= render_time:
@@ -143,7 +163,9 @@ func _physics_process(_delta):
 
 
 func insert_event(options, event_time):
-	if event_time > GameServer.client_clock - INTERPOLATION_OFFSET:
+	if options.has("player") and options.player == str(get_tree().get_network_unique_id()):
+		consume_event(options)
+	elif event_time > GameServer.client_clock - INTERPOLATION_OFFSET:
 		options["t"] = event_time
 		event_buffer.append(options)
 	else:

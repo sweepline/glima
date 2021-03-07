@@ -66,6 +66,13 @@ func face_towards(point: Vector3):
 	rotation.x = 0
 	rotation.z = 0
 
+func recalculate_nav():
+	if global_transform.origin.distance_to(current_target_location) < 1:
+		path = []
+		global_transform.origin = current_target_location
+	else:
+		path = nav.get_simple_path(global_transform.origin, current_target_location)
+		path_ind = 0
 
 func move_to(target_pos: Vector3):
 	current_target_location = target_pos
@@ -91,20 +98,14 @@ func end_shield(_options) -> void:
 
 # Blink
 func cast_blink(options) -> void:
-	var pos: Vector3 = options.p
-	#face_towards(pos)
+	var _pos: Vector3 = options.p
 
-	var save_y = global_transform.origin.y
-
-	#global_transform.origin = pos
-
-	#global_transform.origin.y = save_y
+	pass
 
 
 # Slash
 func cast_slash(options) -> void:
 	var cast_point: Vector3 = options.p
-	face_towards(cast_point)
 	var slash_area_inst = slash_area.instance()
 	get_tree().get_root().add_child(slash_area_inst)
 	slash_area_inst.start(global_transform.origin, cast_point, self)
@@ -122,28 +123,12 @@ func end_stone(_options) -> void:
 # Dagger
 func cast_dagger(options) -> void:
 	var target: KinematicBody = get_node("/root/Main/World/Map/" + str(options.u))
-	face_towards(target.global_transform.origin)
-
 	var dagger_inst = dagger.instance()
 	get_tree().get_root().add_child(dagger_inst)
 	dagger_inst.start(global_transform.origin, target, self)
 
 
-# Find closests enemy and attack it, if it dies do it again
-func attack_move(target_pos: Vector3):
-	move_to(target_pos)
-	# attacking_unit = null
-	# attack_moving = true
-
-
-# Run to specific unit and attack it.
-func attack_unit(target_unit: KinematicBody) -> void:
-	move_to(target_unit.global_transform.origin)
-	# attack_moving = false
-	# attacking_unit = target_unit
-
-
-func hit(type: String, caster: String):
+func hit(_type: String, _caster: String):
 	pass
 
 

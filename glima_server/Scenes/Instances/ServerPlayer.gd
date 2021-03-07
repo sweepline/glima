@@ -244,14 +244,12 @@ func refresh_spells():
 
 # Self got hit with a spell
 func hit(spell: String, caster) -> void:
-	print(name, " got hit at: ", OS.get_system_time_msecs(), " by ", spell, " and shield_active: ", shield_active)
 	if dead:
 		return
 	if spell == "dagger":
 		if shield_active and not caster.dead:
 			var caster_t = {"id": GameData.spell_data["dagger"].id, "u": caster.name, "r": true}
 			var _debug_r = cast_dagger(caster_t)
-			print(_debug_r, " at ", OS.get_system_time_msecs())
 			get_node("/root/GameServer").cast_spell_server(caster_t, int(name))
 			
 	if spell == "slash":

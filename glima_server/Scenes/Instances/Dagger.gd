@@ -46,7 +46,6 @@ func _on_unit_entered(body):
 	if not active:
 		return
 	if body == target:
-		print("EGGHH ", name, " p: ", global_transform.origin, " t ", target, " b ", body )
 		body.hit("dagger", caster)
 		active = false
 		queue_free()
