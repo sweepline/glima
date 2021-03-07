@@ -7,6 +7,7 @@ var caster: KinematicBody = null
 var start_distance: float
 var disjointed = false
 var saved_target_position: Vector3 = Vector3.ZERO
+var active = false
 
 
 func start(position: Vector3, _target: KinematicBody, _caster: KinematicBody):
@@ -16,6 +17,7 @@ func start(position: Vector3, _target: KinematicBody, _caster: KinematicBody):
 	rotation.x = PI / 4
 	global_transform.origin.y = 3
 	start_distance = global_transform.origin.distance_to(target.global_transform.origin)
+	active = true
 
 
 func _physics_process(delta):
@@ -34,23 +36,19 @@ func _physics_process(delta):
 
 	var steer_force = range_lerp(distance, start_distance, 0, 0, 30)
 
-	global_transform.basis.x = global_transform.basis.x.linear_interpolate(
-		towards_target.basis.x, delta * steer_force
-	)
-	global_transform.basis.y = global_transform.basis.y.linear_interpolate(
-		towards_target.basis.y, delta * steer_force
-	)
-	global_transform.basis.z = global_transform.basis.z.linear_interpolate(
-		towards_target.basis.z, delta * steer_force
-	)
+	global_transform.basis = global_transform.basis.slerp(towards_target.basis, delta * steer_force)
 
 	var move_vec = global_transform.basis.z * speed * delta
 	global_transform.origin -= move_vec
 
 
 func _on_unit_entered(body):
+	if not active:
+		return
 	if body == target:
+		print("EGGHH ", name, " p: ", global_transform.origin, " t ", target, " b ", body )
 		body.hit("dagger", caster)
+		active = false
 		queue_free()
 
 

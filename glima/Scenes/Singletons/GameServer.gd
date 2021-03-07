@@ -40,7 +40,7 @@ remote func spawn_new_player(player_id: int, position: Vector3):
 		return
 	get_node("/root/Main/World").spawn_new_player(player_id, Vector2(position.x, position.z))
 
-remote func despawn_player(player_id):
+remote func despawn_player(player_id: int):
 	if get_tree().get_rpc_sender_id() != 1:
 		return
 	get_node("/root/Main/World").despawn_player(player_id)
@@ -55,33 +55,86 @@ remote func return_player_stats(stats):
 		return
 	get_node("/root/Main/World/PlayerController").test_print_player_stats(stats)
 
-
-func send_player_state(player_state):
-	rpc_unreliable_id(1, "receive_player_state", player_state)
-
-
 remote func receive_world_state(world_state):
 	if get_tree().get_rpc_sender_id() != 1:
 		return
 	get_node("/root/Main/World").update_world_state(world_state)
 
 
-func cast_spell(spell, options):
-	rpc_id(1, "cast_spell", spell, options, client_clock)
+func move_command(options):
+	rpc_id(1, "move_command", options, client_clock)
 
 
-remote func receive_spell(spell, options, cast_time, player_id):
+func cast_spell(options):
+	rpc_id(1, "cast_spell", options, client_clock)
+
+
+remote func cast_failed(reason):
 	if get_tree().get_rpc_sender_id() != 1:
 		return
-	get_node("/root/Main/World").spell_cast(spell, options, cast_time, player_id)
-	if player_id == get_tree().get_network_unique_id():
-		print("SERVER_SAYS I CASTED A SPELL")
+	# Update cd if spells cast failed
+	print("Could not cast spell: ", reason.r)
+	reason.erase("r")
+	print("Other information: ", reason)
+
+remote func receive_spell(options, result, player_id: int, cast_time):
+	if get_tree().get_rpc_sender_id() != 1:
+		return
+
+	options["function"] = "cast_" + GameData.spell_by_id[options.id].name
+	options["target"] = "player"
+	options["player"] = str(player_id)
+	get_node("/root/Main/World").insert_event(options, cast_time)
+	if result.r == "server":
+		# Server says this was casted without user input
+		pass
+	elif player_id == get_tree().get_network_unique_id():
 		# Correct client side predictions
 		pass
 	else:
-		print("SERVER_SAYS SOMEONE ELSE CASTED A SPELL")
 		pass
 		#get_node("/root/Main/World")
+
+remote func end_buff(buff_id, player_id: int, time):
+	if get_tree().get_rpc_sender_id() != 1:
+		return
+
+	var options = {
+		"function": "end_" + GameData.spell_by_id[buff_id].name, "player": str(player_id)
+	}
+	get_node("/root/Main/World").insert_event(options, time)
+
+remote func disjoint(pos, player_id, time):
+	if get_tree().get_rpc_sender_id() != 1:
+		return
+	var player = get_node("/root/Main/World/Map/" + str(player_id))
+	var options = {
+		"function": "blink_disjoint",
+		"group": "dagger",
+		"blink_caster": player,
+		"caster_position": pos
+	}
+	get_node("/root/Main/World").insert_event(options, time)
+
+remote func kill_player(player_id: int, killer_id, time):
+	if get_tree().get_rpc_sender_id() != 1:
+		return
+	var options = {"function": "die", "player": str(player_id)}
+	get_node("/root/Main/World").insert_event(options, time)
+	# TODO: DO THIS AT CORRECT TIME
+	if player_id == get_tree().get_network_unique_id():
+		get_node("/root/Main/World/PlayerController").deactivate()
+	if killer_id == get_tree().get_network_unique_id():
+		get_node("/root/Main/World/PlayerController").refresh_cooldowns()
+
+remote func resurrect_player(player_id: int, position, time):
+	if get_tree().get_rpc_sender_id() != 1:
+		return
+	var options = {"function": "resurrect", "player": str(player_id), "position": position}
+	get_node("/root/Main/World").insert_event(options, time)
+	# TODO: AT CORRECT TIME
+	if player_id == get_tree().get_network_unique_id():
+		get_node("/root/Main/World/PlayerController").activate()
 
 
 func _on_connection_succeeded():
@@ -138,6 +191,7 @@ remote func fetch_token():
 	rpc_id(1, "return_token", token)
 
 remote func return_token_verification_results(result):
+	print("TOKEN VERIFY, ", result)
 	if get_tree().get_rpc_sender_id() != 1:
 		return
 	if result == true:

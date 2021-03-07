@@ -14,3 +14,6 @@ func _on_login_button_pressed():
 		var password = password_input.get_text()
 		print("Attempting login")
 		Gateway.connect_to_server(username, password)
+
+func _on_password_done(_x):
+	_on_login_button_pressed()

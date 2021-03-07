@@ -19,38 +19,31 @@ enum { NORMAL_MOVE, ATTACK_MOVE }
 # Unit things
 # Spell things
 var cooldowns: Array = [0, 0, 0, 0, 0]
-var shield_active = false
-var stone_active = false
 var attack_moving = false
 var attacking_unit: KinematicBody = null
 
 
 func set_player(_player: KinematicBody):
 	player = _player
+
+func activate():
 	set_process(true)
 	set_process_input(true)
 	set_physics_process(true)
-
-
-func _ready() -> void:
+	
+func deactivate():
 	set_process_input(false)
 	set_physics_process(false)
 	set_process(false)
+
+
+
+func _ready() -> void:
+	deactivate()
 	click_circle.visible = false
 	#for enemy in get_tree().get_nodes_in_group("enemy"):
 	#	enemy.connect("mouse_entered", self, "set_target", [enemy])
 	#	enemy.connect("mouse_exited", self, "unset_target", [enemy])
-
-
-func define_player_state():
-	# I think we want to use flatbuffers at some point for smaller packets
-	var rot_quat = player.global_transform.basis.get_rotation_quat()
-	player_state = {
-		"t": GameServer.client_clock,
-		"p": Vector2(player.global_transform.origin.x, player.global_transform.origin.z),
-		"r": Vector2(rot_quat.y, rot_quat.w)
-	}
-	GameServer.send_player_state(player_state)
 
 
 func _process(delta):
@@ -58,11 +51,6 @@ func _process(delta):
 		var cooldown = cooldowns[i]
 		if cooldown > 0:
 			cooldowns[i] = max(cooldown - delta, 0)
-
-
-func _physics_process(_delta):
-	define_player_state()
-	pass
 
 
 func test_print_player_stats(stats):
@@ -75,8 +63,8 @@ func _input(event: InputEvent) -> void:
 	var m_pos = get_viewport().get_mouse_position()
 
 	if event.is_action_pressed("main_move"):
-		if not $StoneTimer.is_stopped():
-			$StoneTimer.stop()
+		if not player.get_node("StoneTimer").is_stopped():
+			player.get_node("StoneTimer").stop()
 			player.end_stone()
 
 		if target_unit != null:
@@ -85,10 +73,6 @@ func _input(event: InputEvent) -> void:
 		else:
 			move_player(m_pos, NORMAL_MOVE)
 	if event.is_action_pressed("attack_move"):
-		if not $StoneTimer.is_stopped():
-			$StoneTimer.stop()
-			player.end_stone()
-
 		if target_unit != null:
 			player.attack_unit(target_unit)
 			target_reticle.red()
@@ -106,7 +90,7 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("spell_5"):
 		cast_dagger(target_unit)
 	if event.is_action_pressed("stop_move"):
-		player.stop()
+		GameServer.move_command({"type": "stop"})
 		if target_reticle != null:
 			target_reticle.green()
 
@@ -119,10 +103,10 @@ func move_player(m_pos: Vector2, type):
 		click_circle.rotation = Vector3(-PI / 2, 0, 0)
 		match type:
 			NORMAL_MOVE:
-				player.move_to(result)
+				GameServer.move_command({"type": "move", "pos": result})
 				click_circle.green()
 			ATTACK_MOVE:
-				player.attack_move(result)
+				GameServer.move_command({"type": "attack", "pos": result})
 				click_circle.red()
 		var anim_player = click_circle.get_node("AnimationPlayer")
 		if anim_player.is_playing():
@@ -159,24 +143,16 @@ func cast_shield() -> void:
 	var COOLDOWN = 2
 	var DURATION = 0.7
 
-	if stone_active:
+	if player.stone_active:
 		return
 	if cooldowns[spell_id] > 0:
 		return
 
 	#player.get_node("Shield").visible = true
-	$ShieldTimer.wait_time = DURATION
-	$ShieldTimer.start()
-	shield_active = true
 
-	GameServer.cast_spell(GameData.spells.SHIELD, {})
+	GameServer.cast_spell({"id": GameData.spell_data.shield.id})
 
 	cooldowns[spell_id] = DURATION + COOLDOWN
-
-
-func end_shield() -> void:
-	#player.end_shield()
-	shield_active = false
 
 
 # Blink
@@ -185,7 +161,7 @@ func cast_blink(pos: Vector3) -> void:
 	var COOLDOWN = 4
 	var RANGE = 30
 
-	if stone_active:
+	if player.stone_active:
 		return
 	if cooldowns[spell_id] > 0:
 		return
@@ -197,7 +173,7 @@ func cast_blink(pos: Vector3) -> void:
 	else:
 		blink_point = global_transform.origin.move_toward(pos, RANGE)
 
-	GameServer.cast_spell(GameData.spells.BLINK, {"p": pos})
+	GameServer.cast_spell({"id": GameData.spell_data.blink.id, "p": pos})
 	# player.cast_blink(blink_point)
 
 	cooldowns[spell_id] = COOLDOWN
@@ -212,12 +188,12 @@ func cast_slash(cast_point: Vector3) -> void:
 	var spell_id = 2
 	var COOLDOWN = 2
 
-	if stone_active:
+	if player.stone_active:
 		return
 	if cooldowns[spell_id] > 0:
 		return
 
-	GameServer.cast_spell(GameData.spells.SLASH, {"p": cast_point})
+	GameServer.cast_spell({"id": GameData.spell_data.slash.id, "p": cast_point})
 	# player.cast_slash(cast_point)
 	cooldowns[spell_id] = COOLDOWN
 
@@ -228,24 +204,15 @@ func cast_stone() -> void:
 	var COOLDOWN = 12
 	var DURATION = 6
 
-	if stone_active:
+	if player.stone_active:
 		return
 	if cooldowns[spell_id] > 0:
 		return
 
-	GameServer.cast_spell(GameData.spells.STONE, {})
+	GameServer.cast_spell({"id": GameData.spell_data.stone.id})
 	# player.cast_stone()
-	$StoneTimer.wait_time = DURATION
-	$StoneTimer.start()
-	stone_active = true
 
 	cooldowns[spell_id] = DURATION + COOLDOWN
-
-
-func end_stone() -> void:
-	stone_active = false
-	player.end_stone()
-
 
 # Dagger
 func cast_dagger(target: KinematicBody) -> void:
@@ -253,7 +220,7 @@ func cast_dagger(target: KinematicBody) -> void:
 	var COOLDOWN = 5
 	var RANGE = 40
 
-	if stone_active:
+	if player.stone_active:
 		return
 	if target == null:
 		return
@@ -263,11 +230,11 @@ func cast_dagger(target: KinematicBody) -> void:
 	if player.global_transform.origin.distance_to(target.global_transform.origin) > RANGE:
 		return
 
-	GameServer.cast_spell(GameData.spells.DAGGER, {"u": target_unit.name})
+	GameServer.cast_spell({"id": GameData.spell_data.dagger.id, "u": target_unit.name})
 	# player.cast_dagger(target)
 
 	cooldowns[spell_id] = COOLDOWN
 
 
-func refresh_spells():
+func refresh_cooldowns():
 	cooldowns = [0, 0, 0, 0, 0]

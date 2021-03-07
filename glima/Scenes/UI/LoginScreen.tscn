@@ -80,6 +80,7 @@ text = "Username"
 margin_top = 95.0
 margin_right = 336.0
 margin_bottom = 119.0
+text = "admin"
 
 [node name="MarginContainer3" type="MarginContainer" parent="Background/LoginContainer"]
 margin_top = 123.0
@@ -101,6 +102,7 @@ text = "Password"
 margin_top = 169.0
 margin_right = 336.0
 margin_bottom = 193.0
+text = "admin"
 secret = true
 
 [node name="MarginContainer2" type="MarginContainer" parent="Background/LoginContainer"]
@@ -160,4 +162,5 @@ valign = 1
 __meta__ = {
 "_edit_use_anchors_": false
 }
+[connection signal="text_entered" from="Background/LoginContainer/Password" to="." method="_on_password_done"]
 [connection signal="pressed" from="Background/LoginContainer/LoginButton" to="." method="_on_login_button_pressed"]

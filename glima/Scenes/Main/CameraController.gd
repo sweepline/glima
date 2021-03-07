@@ -26,9 +26,6 @@ func disable():
 	set_process(false)
 	set_physics_process(false)
 
-func _ready() -> void:
-	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
-
 
 func _process(delta: float):
 	if Input.is_action_just_pressed("drag_cam"):
@@ -46,8 +43,10 @@ func _process(delta: float):
 		cam.translation.z = min(cam.translation.z + 2, MAX_ZOOM)
 
 	if Input.is_action_pressed("center_cam"):
+		if get_parent().player == null:
+			return
 		# Assuming just one player controlled character
-		var player_loc = get_tree().get_nodes_in_group("player")[0].global_transform.origin
+		var player_loc = get_parent().player.global_transform.origin
 		# Basically when were close we dont want to interpolate the camera position anymore
 		if global_transform.origin.distance_squared_to(player_loc) < 0.25:
 			global_transform.origin = player_loc

@@ -1,8 +1,14 @@
 extends Node
 
-var inMenu = false
+var inMenu = true
 
 func _ready():
+	if inMenu:
+		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+		get_node("World/PlayerController/CameraController").disable()
+	else:
+		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+		get_node("World/PlayerController/CameraController").enable()
 	pass # Replace with function body.
 
 func _input(event: InputEvent) -> void:

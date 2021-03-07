@@ -25,4 +25,4 @@ func _physics_process(delta):
 
 func _on_unit_entered(body):
 	if body.is_in_group("enemy"):
-		body.hit("slash", caster)
+		body.hit("slash", caster.name)

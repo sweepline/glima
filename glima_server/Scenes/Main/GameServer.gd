@@ -4,7 +4,7 @@ var network = NetworkedMultiplayerENet.new()
 var port = 1909
 var max_players = 20
 
-var player_state_collection = {}
+var player_collection = {}
 
 onready var player_verification_process = get_node("PlayerVerification")
 onready var combat_functions = get_node("Combat")
@@ -36,7 +36,7 @@ func _on_peer_disconnected(player_id):
 		get_node(str(player_id)).queue_free()
 		rpc_id(0, "despawn_player", player_id)
 		get_node("World/Map/" + str(player_id)).queue_free()
-		player_state_collection.erase(player_id)
+		player_collection.erase(player_id)
 		
 func _on_timer_expiration_timeout():
 	## THIS MIGHT HAVE TIMING ISSUES
@@ -78,22 +78,43 @@ func return_token_verification_results(player_id, result):
 		get_node("World/Map").add_child(player_inst)
 		player_inst.name = str(player_id)
 		player_inst.global_transform.origin = Vector3(0, 0.4, 0)
+		player_collection[player_id] = player_inst
 
-remote func receive_player_state(player_state):
+remote func move_command(options, _client_clock):
 	var player_id = get_tree().get_rpc_sender_id()
-	if player_state_collection.has(player_id):
-		if player_state_collection[player_id]["t"] < player_state["t"]:
-			player_state_collection[player_id] = player_state
-	else: 
-		player_state_collection[player_id] = player_state
+	if options.type == "move":
+		get_node("/root/GameServer/World/Map/" + str(player_id)).move_to(options.pos)
+	elif options.type == "attack":
+		get_node("/root/GameServer/World/Map/" + str(player_id)).move_to(options.pos)
+	elif options.type == "stop":
+		get_node("/root/GameServer/World/Map/" + str(player_id)).stop()				
 
 func send_world_state(world_state):
 	rpc_unreliable_id(0, "receive_world_state", world_state)
 
-remote func cast_spell(spell, options, cast_time):
+remote func cast_spell(options, _cast_time):
 	var player_id = get_tree().get_rpc_sender_id()
-	# We need to verify it can be done
-	rpc_id(0, "receive_spell", spell, options, cast_time, player_id)
+	# We need to verify it can be done and do it
+	var result = get_node("/root/GameServer/World/Map/" + str(player_id)).try_cast_spell(options)
+	if result["r"] == "success":
+		rpc_id(0, "receive_spell", options, result, player_id, OS.get_system_time_msecs())
+	else:
+		rpc_id(player_id, "cast_failed", result)
+
+func cast_spell_server(options, player_id: int):
+	rpc_id(0, "receive_spell", options, {"r": "server"}, player_id, OS.get_system_time_msecs())	
+
+func end_buff(buff_id, player_id: int):
+	rpc_id(0, "end_buff", buff_id, player_id, OS.get_system_time_msecs())
+
+func disjoint(player_id: int, pos):
+	rpc_id(0, "disjoint", pos,  player_id, OS.get_system_time_msecs())
+
+func kill_player(player_id: int, killer_id):
+	rpc_id(0, "kill_player", player_id,  killer_id, OS.get_system_time_msecs())
+
+func resurrect_player(player_id: int, position):
+	rpc_id(0, "resurrect_player", player_id, position, OS.get_system_time_msecs())
 
 remote func fetch_player_stats():
 	var player_id = get_tree().get_rpc_sender_id()

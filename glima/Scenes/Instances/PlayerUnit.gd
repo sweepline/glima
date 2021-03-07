@@ -12,9 +12,6 @@ var path_ind = 0
 const move_speed = 12
 export var turn_speed = 20
 
-var id: int
-var dead = false
-
 onready var nav: Navigation = get_parent()
 onready var shape: CollisionShape = $CollisionShape
 onready var body: MeshInstance = $Body
@@ -27,6 +24,10 @@ var colors = {
 	"grey": preload("res://Materials/GreyUnit.tres")
 }
 var normal_color = "blue"
+
+var dead = false
+var shield_active = false
+var stone_active = false
 
 
 func _ready() -> void:
@@ -79,41 +80,30 @@ func is_moving() -> bool:
 # The spells to cast (mostly for animations when server comes i guess?)
 
 
-func cast_spell(spell, options, cast_time):
-	print(spell)
-	if spell == GameData.spells.SHIELD:
-		cast_shield()
-
-
 # Shield
-func cast_shield() -> void:
+func cast_shield(_options) -> void:
 	$Shield.visible = true
 
 
-func end_shield() -> void:
+func end_shield(_options) -> void:
 	$Shield.visible = false
 
 
 # Blink
-func cast_blink(pos: Vector3) -> void:
-	stop()
-	face_towards(pos)
-	disjoint_dagger()
+func cast_blink(options) -> void:
+	var pos: Vector3 = options.p
+	#face_towards(pos)
 
 	var save_y = global_transform.origin.y
 
-	global_transform.origin = pos
+	#global_transform.origin = pos
 
-	global_transform.origin.y = save_y
-
-
-func disjoint_dagger():
-	get_tree().call_group("dagger", "blink_disjoint", self, global_transform.origin)
+	#global_transform.origin.y = save_y
 
 
 # Slash
-func cast_slash(cast_point: Vector3) -> void:
-	stop()
+func cast_slash(options) -> void:
+	var cast_point: Vector3 = options.p
 	face_towards(cast_point)
 	var slash_area_inst = slash_area.instance()
 	get_tree().get_root().add_child(slash_area_inst)
@@ -121,17 +111,17 @@ func cast_slash(cast_point: Vector3) -> void:
 
 
 # Stone
-func cast_stone() -> void:
+func cast_stone(_options) -> void:
 	body.material_override = colors.grey
-	stop()
 
 
-func end_stone() -> void:
+func end_stone(_options) -> void:
 	body.material_override = colors[normal_color]
 
 
 # Dagger
-func cast_dagger(target: KinematicBody) -> void:
+func cast_dagger(options) -> void:
+	var target: KinematicBody = get_node("/root/Main/World/Map/" + str(options.u))
 	face_towards(target.global_transform.origin)
 
 	var dagger_inst = dagger.instance()
@@ -153,33 +143,17 @@ func attack_unit(target_unit: KinematicBody) -> void:
 	# attacking_unit = target_unit
 
 
-# Stop all actions
-func stop() -> void:
-	# attack_moving = false
-	# attacking_unit = null
-	path = []
-
-
-# Self got hit with a spell
-func hit(spell: String, caster) -> void:
+func hit(type: String, caster: String):
 	pass
-	# if dead:
-	# 	return
-	# if spell == "dagger":
-	# 	if shield_active and not caster.dead:
-	# 		cast_dagger(caster)
-
-	# if spell == "slash":
-	# 	pass
-
-	# if not shield_active and not stone_active:
-	# 	caster.refresh_spells()
-	# 	die()
 
 
-func die():
-	disjoint_dagger()
-	stop()
+func die(_options):
 	global_transform.origin.y = -10
 	visible = false
 	dead = true
+
+
+func resurrect(options):
+	global_transform.origin = options.position
+	visible = true
+	dead = false

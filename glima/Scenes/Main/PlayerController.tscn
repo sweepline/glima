@@ -20,11 +20,3 @@ script = ExtResource( 3 )
 
 [node name="Camera" type="Camera" parent="CameraController"]
 transform = Transform( 1, 0, 0, 0, 1, -2.98023e-08, 0, 2.98023e-08, 1, 0, 0, 40 )
-
-[node name="StoneTimer" type="Timer" parent="."]
-one_shot = true
-
-[node name="ShieldTimer" type="Timer" parent="."]
-one_shot = true
-[connection signal="timeout" from="StoneTimer" to="." method="end_stone"]
-[connection signal="timeout" from="ShieldTimer" to="." method="end_shield"]

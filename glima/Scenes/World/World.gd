@@ -9,6 +9,7 @@ var last_world_state = 0
 # [past_past_state, most_recent_past_state, nearest_future_state, any_other_future_state]
 var world_state_buffer: Array = []
 const INTERPOLATION_OFFSET = 50  # Basically the lag compensation
+var event_buffer: Array = []
 
 
 func _ready():
@@ -29,6 +30,7 @@ func spawn_new_player(player_id: int, spawn_position: Vector2, spawn_rotation = 
 		print("WE SPAWNED OURSELF")
 		new_player.add_to_group("player")
 		playerController.set_player(new_player)
+		playerController.activate()
 	else:
 		new_player.add_to_group("enemy")  # TODO: TEAM SETUP
 		new_player.connect("mouse_entered", playerController, "set_target", [new_player])
@@ -43,10 +45,6 @@ func spawn_new_player(player_id: int, spawn_position: Vector2, spawn_rotation = 
 func despawn_player(player_id):
 	yield(get_tree().create_timer(0.2), "timeout")
 	map.get_node(str(player_id)).queue_free()
-
-
-func spell_cast(spell, options, cast_time, player_id):
-	map.get_node(str(player_id)).cast_spell(spell, options, cast_time)
 
 
 func update_world_state(world_state):
@@ -70,17 +68,31 @@ func _physics_process(_delta):
 			for player_id in world_state_buffer[2].keys():
 				if str(player_id) == "t":
 					continue
-				if player_id == get_tree().get_network_unique_id():
-					continue
+				#if player_id == get_tree().get_network_unique_id():
+				#	continue
 				if not world_state_buffer[1].has(player_id):
 					continue
 				if map.has_node(str(player_id)):
-					var tmp_pos: Vector2 = lerp(
-						world_state_buffer[1][player_id]["p"],
-						world_state_buffer[2][player_id]["p"],
-						interpolation_factor
-					)
-					var new_position: Vector3 = Vector3(tmp_pos.x, 0.4, tmp_pos.y)
+					var new_position: Vector3
+					# Do something special with blinking
+					if (
+						world_state_buffer[1][player_id]["p"].distance_squared_to(
+							world_state_buffer[2][player_id]["p"]
+						)
+						> 1
+					):
+						new_position = Vector3(
+							world_state_buffer[2][player_id]["p"].x,
+							0.4,
+							world_state_buffer[2][player_id]["p"].y
+						)
+					else:
+						var tmp_pos: Vector2 = lerp(
+							world_state_buffer[1][player_id]["p"],
+							world_state_buffer[2][player_id]["p"],
+							interpolation_factor
+						)
+						new_position = Vector3(tmp_pos.x, 0.4, tmp_pos.y)
 					var old_rot: Vector2 = world_state_buffer[1][player_id]["r"]
 					var new_rot: Vector2 = world_state_buffer[2][player_id]["r"]
 					var new_basis = Quat(0, old_rot.x, 0, old_rot.y).slerp(
@@ -105,8 +117,8 @@ func _physics_process(_delta):
 			for player_id in world_state_buffer[1].keys():
 				if str(player_id) == "t":
 					continue
-				if player_id == get_tree().get_network_unique_id():
-					continue
+				#if player_id == get_tree().get_network_unique_id():
+				#	continue
 				if not world_state_buffer[0].has(player_id):
 					continue
 				if map.has_node(str(player_id)):
@@ -121,3 +133,25 @@ func _physics_process(_delta):
 					map.get_node(str(player_id)).global_transform.origin = Vector3(
 						new_position.x, 0.4, new_position.y
 					)
+
+	# For other global events
+	for i in range(event_buffer.size() - 1, -1, -1):
+		var event = event_buffer[i]
+		if event.t <= render_time:
+			consume_event(event)
+			event_buffer.remove(i)
+
+
+func insert_event(options, event_time):
+	if event_time > GameServer.client_clock - INTERPOLATION_OFFSET:
+		options["t"] = event_time
+		event_buffer.append(options)
+	else:
+		consume_event(options)
+
+
+func consume_event(event):
+	if event.has("player"):
+		get_node("/root/Main/World/Map/" + event.player).call(event.function, event)
+	if event.has("group"):
+		get_tree().call_group(event.group, event.function, event)
