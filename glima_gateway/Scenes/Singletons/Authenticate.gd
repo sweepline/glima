@@ -25,10 +25,22 @@ func _on_connection_succeeded():
 func _on_connection_failed():
 	print("Connection failed to authentication server")
 
+
 func authenticate_player(username, password, player_id):
 	print("Trying to authenticate ", player_id)
 	rpc_id(1, "authenticate_player", username, password, player_id)
 
+
 remote func authentication_result(result, player_id, token):
 	print("Authentication result recieved, replying to player")
 	Gateway.return_login_request(result, player_id, token)
+
+
+func create_account(username, password, player_id):
+	print("Sending create account request")
+	rpc_id(1, "create_account", username, password, player_id)
+
+
+remote func create_account_result(result, player_id, message):
+	print("Create account result with message ", message)
+	Gateway.return_create_account_request(result, player_id, message)
