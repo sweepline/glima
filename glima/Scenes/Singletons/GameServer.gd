@@ -84,8 +84,9 @@ remote func receive_spell(options, result, player_id: int, cast_time):
 	options["function"] = "cast_" + GameData.spell_by_id[options.id].name
 	options["target"] = "player"
 	options["player"] = str(player_id)
-	get_node("/root/Main/World").insert_event(options, cast_time)
+
 	if result.r == "server":
+		options["server"] = true
 		# Server says this was casted without user input
 		pass
 	elif player_id == get_tree().get_network_unique_id():
@@ -94,6 +95,8 @@ remote func receive_spell(options, result, player_id: int, cast_time):
 	else:
 		pass
 		#get_node("/root/Main/World")
+
+	get_node("/root/Main/World").insert_event(options, cast_time)
 
 remote func end_buff(buff_id, player_id: int, time):
 	if get_tree().get_rpc_sender_id() != 1:

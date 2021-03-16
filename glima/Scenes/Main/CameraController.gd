@@ -3,8 +3,8 @@ extends Spatial
 const MOVE_MARGIN = 20
 const MOVE_SPEED = 60
 const DRAG_SPEED = 40
-const MAX_ZOOM = 40
-const MIN_ZOOM = 15
+const MAX_ZOOM = 20
+const MIN_ZOOM = 5
 
 const ray_length = 1000
 onready var cam: Camera = $Camera

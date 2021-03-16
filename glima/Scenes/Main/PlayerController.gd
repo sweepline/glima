@@ -15,7 +15,9 @@ var target_reticle: MeshInstance
 
 # Unit things
 # Spell things
-var cooldowns: Array = [0, 0, 0, 0, 0]
+var cooldowns: Array = [0, 0, 0, 0, 0, 0]
+var event_queue: Array = []
+var casting = false
 
 var state_buffer = []
 
@@ -66,6 +68,9 @@ func _input(event: InputEvent) -> void:
 		return
 	var m_pos = get_viewport().get_mouse_position()
 
+	if Input.is_key_pressed(KEY_SHIFT):
+		pass
+		# queue event
 	if event.is_action_pressed("main_move"):
 		if not player.get_node("StoneTimer").is_stopped():
 			player.get_node("StoneTimer").stop()
@@ -73,15 +78,17 @@ func _input(event: InputEvent) -> void:
 		move_player(m_pos)
 	# abilities
 	if event.is_action_pressed("spell_1"):
-		cast_shield()
+		try_cast("shield")
 	if event.is_action_pressed("spell_2"):
-		cast_blink(raycast_from_mouse(m_pos))
+		try_cast("blink", raycast_from_mouse(m_pos))
 	if event.is_action_pressed("spell_3"):
-		cast_slash(raycast_from_mouse(m_pos))
+		try_cast("slash", raycast_from_mouse(m_pos))
 	if event.is_action_pressed("spell_4"):
-		cast_stone()
+		try_cast("stone")
 	if event.is_action_pressed("spell_5"):
-		cast_dagger(target_unit)
+		try_cast("dagger", target_unit)
+	if event.is_action_pressed("spell_6"):
+		try_cast("spin")
 	if event.is_action_pressed("stop_move"):
 		stop_player()
 
@@ -91,16 +98,20 @@ func stop_player():
 	GameServer.move_command({"type": "stop"})
 	if target_reticle != null:
 		target_reticle.green()
-	
+
+
 func move_player(m_pos: Vector2):
 	var result = raycast_from_mouse(m_pos)
+	if casting:
+		# TODO: queue the move
+		return
 	if result:
+		player.move_to(result)
+		GameServer.move_command({"type": "move", "pos": result})
+
 		# Make an effect on the point clicked
 		click_circle.global_transform.origin = Vector3(result.x, 0.01, result.z)
 		click_circle.rotation = Vector3(-PI / 2, 0, 0)
-
-		player.move_to(result)
-		GameServer.move_command({"type": "move", "pos": result})
 		click_circle.green()
 
 		var anim_player = click_circle.get_node("AnimationPlayer")
@@ -122,7 +133,7 @@ func set_target(enemy) -> void:
 	target_reticle = target_circle.instance()
 	enemy.add_child(target_reticle)
 	target_reticle.translate(Vector3(0, 0, 0.01))
-	target_reticle.scale = Vector3(3, 3, 3)
+	target_reticle.scale = Vector3(2, 2, 2)
 
 
 func unset_target(enemy) -> void:
@@ -132,52 +143,63 @@ func unset_target(enemy) -> void:
 			target_reticle.queue_free()
 
 
-# Shield
-func cast_shield() -> void:
-	var spell_id = 0
-	var COOLDOWN = 2
-	var DURATION = 0.7
+func _on_CastDurationTimer_timeout() -> void:
+	casting = false
+
+
+func try_cast(spell: String, options = null):
+	var data = GameData.spell_data[spell]
 
 	if player.stone_active:
+		# HUD should update
 		return
-	if cooldowns[spell_id] > 0:
+	if cooldowns[data.id] > 0:
+		# HUD should update
 		return
-	
-	GameServer.cast_spell({"id": GameData.spell_data.shield.id})
+	if casting:
+		# Maybe queue it
+		return
 
-	cooldowns[spell_id] = DURATION + COOLDOWN
+	var success = self.call("cast_" + spell, options)
+
+	if not success:
+		# The spell should handle this
+		return
+
+	$CastDurationTimer.wait_time = data.cast_duration
+	$CastDurationTimer.start()
+	casting = true
+	cooldowns[data.id] = data.cooldown
+
+
+# Shield
+func cast_shield(_opt) -> bool:
+	var data = GameData.spell_data["shield"]
+	GameServer.cast_spell({"id": data.id})
+	return true
 
 
 # Blink
-func cast_blink(pos: Vector3) -> void:
-	var spell_id = 1
-	var COOLDOWN = 4
-	var RANGE = 30
+func cast_blink(pos: Vector3) -> bool:
+	var data = GameData.spell_data["blink"]
 
-	if player.stone_active:
-		return
-	if cooldowns[spell_id] > 0:
-		return
-	
 	stop_player()
 	player.face_towards(pos)
 
 	# All movement is instant client side and so happens only in playercontroller
 	var save_y = player.global_transform.origin.y
 	var blink_point
-	if pos.distance_to(player.global_transform.origin) < RANGE:
+	if pos.distance_to(player.global_transform.origin) < data.range:
 		blink_point = pos
 	else:
-		blink_point = player.global_transform.origin.move_toward(pos, RANGE)
+		blink_point = player.global_transform.origin.move_toward(pos, data.range)
 
 	player.global_transform.origin = get_node("/root/Main/World/Map").get_closest_point(blink_point)
 
 	player.global_transform.origin.y = save_y
 
-	GameServer.cast_spell({"id": GameData.spell_data.blink.id, "p": pos})
-	# player.cast_blink(blink_point)
-
-	cooldowns[spell_id] = COOLDOWN
+	GameServer.cast_spell({"id": data.id, "p": pos})
+	return true
 
 
 func disjoint_dagger():
@@ -185,64 +207,52 @@ func disjoint_dagger():
 
 
 # Slash
-func cast_slash(cast_point: Vector3) -> void:
-	var spell_id = 2
-	var COOLDOWN = 2
-
-	if player.stone_active:
-		return
-	if cooldowns[spell_id] > 0:
-		return
+func cast_slash(cast_pos: Vector3) -> bool:
+	var data = GameData.spell_data["slash"]
 
 	stop_player()
-	player.face_towards(cast_point)
-	
-	GameServer.cast_spell({"id": GameData.spell_data.slash.id, "p": cast_point})
-	# player.cast_slash(cast_point)
-	cooldowns[spell_id] = COOLDOWN
+	player.face_towards(cast_pos)
+
+	GameServer.cast_spell({"id": data.id, "p": cast_pos})
+	return true
 
 
 # Stone
-func cast_stone() -> void:
-	var spell_id = 3
-	var COOLDOWN = 12
-	var DURATION = 6
+func cast_stone(_opt) -> bool:
+	var data = GameData.spell_data["stone"]
 
-	if player.stone_active:
-		return
-	if cooldowns[spell_id] > 0:
-		return
-		
 	stop_player()
-	GameServer.cast_spell({"id": GameData.spell_data.stone.id})
-	# player.cast_stone()
-
-	cooldowns[spell_id] = DURATION + COOLDOWN
+	GameServer.cast_spell({"id": data.id})
+	return true
 
 
 # Dagger
-func cast_dagger(target: KinematicBody) -> void:
-	var spell_id = 4
-	var COOLDOWN = 5
-	var RANGE = 40
+func cast_dagger(target: KinematicBody) -> bool:
+	var data = GameData.spell_data["dagger"]
 
-	if player.stone_active:
-		return
 	if target == null:
-		return
-	if cooldowns[spell_id] > 0:
-		return
+		return false
 
-	if player.global_transform.origin.distance_to(target.global_transform.origin) > RANGE:
-		return
+	if player.global_transform.origin.distance_to(target.global_transform.origin) > data.range:
+		# move towards target and cast when in range
+		return false
 
 	stop_player()
-	player.face_towards(target.global_transform.origin)	
-	GameServer.cast_spell({"id": GameData.spell_data.dagger.id, "u": target_unit.name})
+	player.face_towards(target.global_transform.origin)
+	GameServer.cast_spell({"id": data.id, "u": target_unit.name})
 	# player.cast_dagger(target)
 
-	cooldowns[spell_id] = COOLDOWN
+	return true
+
+
+func cast_spin(_opt) -> bool:
+	var data = GameData.spell_data["spin"]
+
+	stop_player()
+	GameServer.cast_spell({"id": data.id})
+
+	return true
 
 
 func refresh_cooldowns():
-	cooldowns = [0, 0, 0, 0, 0]
+	cooldowns = [0, 0, 0, 0, 0, 0]

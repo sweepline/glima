@@ -53,7 +53,7 @@ func update_world_state(world_state):
 		world_state_buffer.append(world_state)
 
 
-func _physics_process(delta):
+func _physics_process(_delta):
 	var render_time = GameServer.client_clock - INTERPOLATION_OFFSET
 	if world_state_buffer.size() > 1:
 		# Make sure most_recent_past is actually that
@@ -70,7 +70,7 @@ func _physics_process(delta):
 					continue
 				if not world_state_buffer[1].has(player_id):
 					continue
-				
+
 				# If were interpolating check player against newest world
 				if player_id == get_tree().get_network_unique_id() and map.has_node(str(player_id)):
 					var state_buffer = player_controller.state_buffer
@@ -80,14 +80,23 @@ func _physics_process(delta):
 						state_buffer.remove(0)
 					var pos: Vector3 = state_buffer[0]["p"]
 					var rot: Quat = state_buffer[0]["r"]
-					var world_pos = Vector3(newest_world[player_id]["p"].x,	0.4,newest_world[player_id]["p"].y)
-					var world_rot = Quat(0, newest_world[player_id]["r"].x, 0, newest_world[player_id]["r"].y)
-					print(pos.distance_to(world_pos), ", ", state_buffer.size())
-					if pos.distance_to(world_pos) > 1 and player_controller.cooldowns[1] < GameData.spell_data["blink"].cooldown - 0.15:
+					var world_pos = Vector3(
+						newest_world[player_id]["p"].x, 0.4, newest_world[player_id]["p"].y
+					)
+					var world_rot = Quat(
+						0, newest_world[player_id]["r"].x, 0, newest_world[player_id]["r"].y
+					)
+					if (
+						pos.distance_to(world_pos) > 1
+						and (
+							player_controller.cooldowns[1]
+							< GameData.spell_data["blink"].cooldown - 0.15
+						)
+					):
 						# TODO: Lerp this for rubber-banding
-						print("PLAYER REPOSITIONED, BLINKCD: ", player_controller.cooldowns[1], " THRESH ", GameData.spell_data["blink"].cooldown - 0.15)
+						print("PLAYER REPOSITIONED, pos: ", pos, " world_pos ", world_pos)
 						map.get_node(str(player_id)).move_player(world_pos, world_rot)
-						#map.get_node(str(player_id)).move_player(pos.linear_interpolate(world_pos, delta * 2), rot.slerp(world_rot, delta))						
+						#map.get_node(str(player_id)).move_player(pos.linear_interpolate(world_pos, delta * 2), rot.slerp(world_rot, delta))
 						map.get_node(str(player_id)).recalculate_nav()
 					continue
 				if map.has_node(str(player_id)):
@@ -116,7 +125,7 @@ func _physics_process(delta):
 					var new_basis = Quat(0, old_rot.x, 0, old_rot.y).slerp(
 						Quat(0, new_rot.x, 0, new_rot.y), interpolation_factor
 					)
-					
+
 					map.get_node(str(player_id)).move_player(new_position, new_basis)
 				else:
 					spawn_new_player(

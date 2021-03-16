@@ -19,4 +19,8 @@ transform = Transform( 1, 0, 0, 0, 0.258819, 0.965925, 0, -0.965925, 0.258819, 0
 script = ExtResource( 3 )
 
 [node name="Camera" type="Camera" parent="CameraController"]
-transform = Transform( 1, 0, 0, 0, 1, -2.98023e-08, 0, 2.98023e-08, 1, 0, 0, 40 )
+transform = Transform( 1, 0, 0, 0, 1, -2.98023e-08, 0, 2.98023e-08, 1, 0, 0, 20 )
+
+[node name="CastDurationTimer" type="Timer" parent="."]
+one_shot = true
+[connection signal="timeout" from="CastDurationTimer" to="." method="_on_CastDurationTimer_timeout"]

@@ -14,15 +14,15 @@ onready var nav: Navigation = get_parent()
 onready var shape: CollisionShape = $CollisionShape
 onready var slash_area = preload("res://Scenes/Instances/SlashArea.tscn")
 onready var dagger = preload("res://Scenes/Instances/Dagger.tscn")
+onready var cast_point_timer: Timer = $CastPointTimer
 
 var normal_color = "blue"
 
 # Spell things
-var cooldowns: Array = [0, 0, 0, 0, 0]
+var cooldowns: Array = [0, 0, 0, 0, 0, 0]
 var shield_active = false
 var stone_active = false
-var attack_moving = false
-var attacking_unit: KinematicBody = null
+var casting = false
 
 
 func _physics_process(delta):
@@ -39,11 +39,6 @@ func _physics_process(delta):
 			cooldowns[i] = max(cooldown - delta, 0)
 
 
-func move_player(pos: Vector3, basis: Quat):
-	global_transform.origin = pos
-	global_transform.basis = basis
-
-
 func face_direction(_dir: Vector3, delta: float):
 	var dir = -_dir  # Front is -Z
 	var angle_diff = global_transform.basis.z.angle_to(dir)
@@ -53,6 +48,7 @@ func face_direction(_dir: Vector3, delta: float):
 	else:
 		rotation.y += turn_speed * delta * turn_right
 
+
 func face_towards(point: Vector3):
 	look_at(point, Vector3.UP)
 	rotation.x = 0
@@ -60,7 +56,9 @@ func face_towards(point: Vector3):
 
 
 func move_to(target_pos: Vector3):
-	attack_moving = false
+	if casting:
+		# TODO: queue the move
+		return
 	if not $StoneTimer.is_stopped():
 		$StoneTimer.stop()
 		end_stone()
@@ -71,129 +69,139 @@ func move_to(target_pos: Vector3):
 
 func is_moving() -> bool:
 	return path_ind < path.size()
-	
-# Find closests enemy and attack it, if it dies do it again
-func attack_move(target_pos: Vector3):
-	move_to(target_pos)
-	attacking_unit = null
-	attack_moving = true
-
-
-# Run to specific unit and attack it.
-func attack_unit(target_unit: KinematicBody) -> void:
-	move_to(target_unit.global_transform.origin)
-	attack_moving = false
-	attacking_unit = target_unit
 
 
 # Stop all actions
 func stop() -> void:
-	attack_moving = false
-	attacking_unit = null
 	path = []
-	
+
+
 # SPELL THINGS
 
-func try_cast_spell(options) -> Dictionary:
-	return call("cast_" + GameData.spell_by_id[options.id].name, options)
 
-# Shield
-func cast_shield(_options) -> Dictionary:
-	var spell_slot = 0
-	var COOLDOWN = 2
-	var DURATION = 0.7
+func try_cast_spell(options) -> Dictionary:
+	var data = GameData.spell_by_id[options.id]
 
 	if stone_active:
 		return {"r": "stone_active"}
-	if cooldowns[spell_slot] > 0:
-		return {"r": "cooldown", "t": cooldowns[spell_slot]}
+	if cooldowns[data.id] > 0:
+		return {"r": "cooldown", "t": cooldowns[data.id]}
+	if casting:
+		# Maybe queue it
+		return {"r": "already_casting"}
 
+	var success = call("cast_" + data.name, options)
+
+	if not success:
+		# The spell should handle this
+		return {"r": "spell_failed"}
+
+	$CastDurationTimer.wait_time = data.cast_duration
+	$CastDurationTimer.start()
+	casting = true
+	cooldowns[data.id] = data.cooldown
+	return {"r": "success"}
+
+
+func _on_cast_end():
+	casting = false
+
+
+func cast_shield(_options) -> bool:
+	var data = GameData.spell_data["shield"]
+	cast_point_timer.wait_time = data.cast_point
+	cast_point_timer.connect("timeout", self, "main_cast_shield", [_options])
+	cast_point_timer.start()
+	return true
+
+
+# Shield
+func main_cast_shield(_options) -> void:
+	var data = GameData.spell_data["shield"]
 	$Shield.visible = true
-	$ShieldTimer.wait_time = DURATION
+	$ShieldTimer.wait_time = data.duration
 	$ShieldTimer.start()
 	shield_active = true
-
-	cooldowns[spell_slot] = DURATION + COOLDOWN
-	
-	return {"r": "success", "d": DURATION}
+	cast_point_timer.disconnect("timeout", self, "main_cast_shield")
 
 
 func end_shield() -> void:
-	get_node("/root/GameServer").end_buff(GameData.spell_data["shield"].id, int(name))	
+	get_node("/root/GameServer").end_buff(GameData.spell_data["shield"].id, int(name))
 	$Shield.visible = false
 	shield_active = false
 
 
-# Blink
-func cast_blink(options) -> Dictionary:
-	var pos: Vector3 = options.p 
-	var spell_slot = 1
-	var COOLDOWN = 4
-	var RANGE = 30
-
-	if stone_active:
-		return {"r": "stone_active"}
-	if cooldowns[spell_slot] > 0:
-		return {"r": "cooldown", "t": cooldowns[spell_slot]}
-
+func cast_blink(options) -> bool:
+	var data = GameData.spell_data["blink"]
 	stop()
-	face_towards(pos)
+	face_towards(options.p)
+
+	cast_point_timer.wait_time = data.cast_point
+	cast_point_timer.connect("timeout", self, "main_cast_blink", [options])
+	cast_point_timer.start()
+	return true
+
+
+# Blink
+func main_cast_blink(options) -> void:
+	var pos: Vector3 = options.p
+	var data = GameData.spell_data["blink"]
+
 	disjoint_dagger()
 
 	var save_y = global_transform.origin.y
 	var blink_point
-	if pos.distance_to(global_transform.origin) < RANGE:
+	if pos.distance_to(global_transform.origin) < data.range:
 		blink_point = pos
 	else:
-		blink_point = global_transform.origin.move_toward(pos, RANGE)
+		blink_point = global_transform.origin.move_toward(pos, data.range)
 
 	global_transform.origin = nav.get_closest_point(blink_point)
 
 	global_transform.origin.y = save_y
-
-	cooldowns[spell_slot] = COOLDOWN
-	
-	return {"r": "success"}
+	cast_point_timer.disconnect("timeout", self, "main_cast_blink")
 
 
+func cast_slash(options) -> bool:
+	var data = GameData.spell_data["slash"]
+	stop()
+	face_towards(options.p)
+
+	cast_point_timer.wait_time = data.cast_point
+	cast_point_timer.connect("timeout", self, "main_cast_slash", [options])
+	cast_point_timer.start()
+	return true
 
 
 # Slash
-func cast_slash(options) -> Dictionary:
-	var cast_point: Vector3 = options.p 	
-	var spell_slot = 2
-	var COOLDOWN = 2
+func main_cast_slash(options) -> void:
+	var cast_point: Vector3 = options.p
+	var data = GameData.spell_data["slash"]
 
-	if stone_active:
-		return {"r": "stone_active"}
-	if cooldowns[spell_slot] > 0:
-		return {"r": "cooldown", "t": cooldowns[spell_slot]}
-
-	stop()
-	face_towards(cast_point)
 	var slash_area_inst = slash_area.instance()
 	get_tree().get_root().add_child(slash_area_inst)
 	slash_area_inst.start(global_transform.origin, cast_point, self)
+	cast_point_timer.disconnect("timeout", self, "main_cast_slash")
 
-	cooldowns[spell_slot] = COOLDOWN
-	return {"r": "success"}
+
+func cast_stone(_options) -> bool:
+	var data = GameData.spell_data["stone"]
+	stop()
+
+	cast_point_timer.wait_time = data.cast_point
+	cast_point_timer.connect("timeout", self, "main_cast_stone", [_options])
+	cast_point_timer.start()
+	return true
+
 
 # Stone
-func cast_stone(_options) -> Dictionary:
-	var spell_slot = 3
-	var COOLDOWN = 12
-	var DURATION = 6
+func main_cast_stone(_options) -> void:
+	var data = GameData.spell_data["stone"]
 
-	if cooldowns[spell_slot] > 0:
-		return {"r": "cooldown", "t": cooldowns[spell_slot]}
-
-	stop()
-	$StoneTimer.wait_time = DURATION
+	$StoneTimer.wait_time = data.duration
 	$StoneTimer.start()
 	stone_active = true
-
-	cooldowns[spell_slot] = DURATION + COOLDOWN
-	return {"r": "success", "d": DURATION}
+	cast_point_timer.disconnect("timeout", self, "main_cast_stone")
 
 
 func end_stone() -> void:
@@ -201,46 +209,68 @@ func end_stone() -> void:
 	stone_active = false
 
 
-# Dagger
-func cast_dagger(options) -> Dictionary:
+func cast_dagger(options) -> bool:
 	var target: KinematicBody = get_node("/root/GameServer").player_collection[int(options.u)]
 	var reflect = false
 	if options.has("r"):
 		reflect = options.r
 
-	var spell_slot = 4
-	var COOLDOWN = 5
-	var RANGE = 40
+	var data = GameData.spell_data["dagger"]
 
 	if target.dead:
-		return {"r": "target_dead"}
+		return false
 	if target == null:
-		return {"r": "no_target"}
-	if not reflect && stone_active:
-		return {"r": "stone_active"}
-	if not reflect && cooldowns[spell_slot] > 0:
-		return {"r": "cooldown", "t": cooldowns[spell_slot]}
-	if not reflect && global_transform.origin.distance_to(target.global_transform.origin) > RANGE:
-		return {"r": "out_of_range"}
+		return false
+	if (
+		not reflect
+		&& global_transform.origin.distance_to(target.global_transform.origin) > data.range
+	):
+		# move towards target and cast when in range
+		return false
 
+	stop()
 	face_towards(target.global_transform.origin)
-	
+
+	cast_point_timer.wait_time = data.cast_point
+	cast_point_timer.connect("timeout", self, "main_cast_dagger", [options])
+	cast_point_timer.start()
+	return true
+
+
+# Dagger
+func main_cast_dagger(options) -> void:
+	var target: KinematicBody = get_node("/root/GameServer").player_collection[int(options.u)]
+
 	var dagger_inst = dagger.instance()
 	get_tree().get_root().add_child(dagger_inst)
 	dagger_inst.start(global_transform.origin, target, self)
-
-	if not reflect:
-		cooldowns[spell_slot] = COOLDOWN
-	return {"r": "success"}
+	cast_point_timer.disconnect("timeout", self, "main_cast_dagger")
 
 
 func disjoint_dagger():
 	get_tree().call_group("dagger", "blink_disjoint", self, global_transform.origin)
-	get_node("/root/GameServer").disjoint(int(self.name), global_transform.origin)	
+	get_node("/root/GameServer").disjoint(int(self.name), global_transform.origin)
+
+
+func cast_spin(options) -> bool:
+	var data = GameData.spell_data["stone"]
+	stop()
+
+	cast_point_timer.wait_time = data.cast_point
+	cast_point_timer.connect("timeout", self, "main_cast_spin", [options])
+	cast_point_timer.start()
+	return true
+
+
+func main_cast_spin(options) -> void:
+	var data = GameData.spell_data["spin"]
+	$SpinArea.start(data.range, self)
+	cast_point_timer.disconnect("timeout", self, "main_cast_spin")
 
 
 func refresh_spells():
-	cooldowns = [0, 0, 0, 0, 0]
+	cooldowns = [0, 0, 0, 0, 0, 0]
+
 
 # Self got hit with a spell
 func hit(spell: String, caster) -> void:
@@ -251,8 +281,11 @@ func hit(spell: String, caster) -> void:
 			var caster_t = {"id": GameData.spell_data["dagger"].id, "u": caster.name, "r": true}
 			var _debug_r = cast_dagger(caster_t)
 			get_node("/root/GameServer").cast_spell_server(caster_t, int(name))
-			
+
 	if spell == "slash":
+		pass
+
+	if spell == "spin":
 		pass
 
 	if not shield_active and not stone_active:
@@ -267,10 +300,11 @@ func die():
 	global_transform.origin.y = -10
 	visible = false
 	dead = true
+	$SpinArea.stop()
 	#DEBUG THING
 	yield(get_tree().create_timer(2), "timeout")
-	get_node("/root/GameServer").resurrect_player(int(name), Vector3(0,0.4,0))
-	resurrect(Vector3(0,0.4,0))
+	get_node("/root/GameServer").resurrect_player(int(name), Vector3(0, 0.4, 0))
+	resurrect(Vector3(0, 0.4, 0))
 
 
 func resurrect(pos):
