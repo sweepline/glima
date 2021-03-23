@@ -15,7 +15,6 @@ onready var create_button: TextureButton = get_node(
 )
 onready var back_button: TextureButton = get_node("Background/CreateAccountContainer/BackButton")
 
-
 func buttons_disable(disabled):
 	login_button.disabled = disabled
 	goto_create_button.disabled = disabled
@@ -65,3 +64,6 @@ func _on_create_back_pressed():
 
 func _on_password_done(_x):
 	_on_login_button_pressed()
+
+func _on_gateway_ip_changed(new_text):
+	Gateway.ip = new_text.strip_edges()

@@ -63,8 +63,8 @@ remote func create_account_request(username, password):
 		Authenticate.create_account(username.to_lower(), password, player_id)
 
 
-func return_create_account_request(result: bool, player_id: int, message):
-	rpc_id(player_id, "return_create_account_request", result, message)
+func return_create_account_request(success, player_id: int, message):
+	rpc_id(player_id, "return_create_account_request",success, message)
 	# 1 = fail, 2 = existing username, 3 = success
 	network.disconnect_peer(player_id)
 

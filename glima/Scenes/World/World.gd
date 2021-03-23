@@ -23,11 +23,9 @@ func _ready():
 func spawn_new_player(player_id: int, spawn_position: Vector2, spawn_rotation = Vector2(0, 1)):
 	if map.has_node(str(player_id)):
 		return
-	print("spawn ", player_id)
 	var new_player = unit_res.instance()
 	new_player.name = str(player_id)
 	if player_id == get_tree().get_network_unique_id():
-		print("WE SPAWNED OURSELF")
 		new_player.add_to_group("player")
 		player_controller.set_player(new_player)
 		player_controller.activate()
@@ -40,6 +38,7 @@ func spawn_new_player(player_id: int, spawn_position: Vector2, spawn_rotation = 
 		Vector3(spawn_position.x, 0.4, spawn_position.y),
 		Quat(0, spawn_rotation.x, 0, spawn_rotation.y)
 	)
+	new_player.face_towards(Vector3.ZERO)
 
 
 func despawn_player(player_id):

@@ -44,7 +44,6 @@ func _physics_process(delta):
 
 func _on_unit_entered(body):
 	if body == target:
-		print("dagger hit")
 		body.hit("dagger", caster.name)
 		visible = false
 		queue_free()

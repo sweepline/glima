@@ -191,7 +191,7 @@ func cast_dagger(options) -> void:
 
 	if options.has("server") and options.server:
 		# This is the rebound when shielded, different animation and no cast_point
-		self.call("main_cast_dagger", [options])
+		self.call("main_cast_dagger", options)
 		return
 
 	anim_tree.set("parameters/spell_slot/blend_position", 4)
@@ -239,5 +239,6 @@ func die(_options):
 func resurrect(options):
 	global_transform.origin = options.position
 	current_target_location = options.position
+	face_towards(Vector3.ZERO)
 	visible = true
 	dead = false

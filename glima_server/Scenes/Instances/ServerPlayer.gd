@@ -83,18 +83,18 @@ func try_cast_spell(options) -> Dictionary:
 	var data = GameData.spell_by_id[options.id]
 
 	if stone_active:
-		return {"r": "stone_active"}
+		return {"r": "stone_active", "id": data.id}
 	if cooldowns[data.id] > 0:
-		return {"r": "cooldown", "t": cooldowns[data.id]}
+		return {"r": "cooldown", "t": cooldowns[data.id], "id": data.id}
 	if casting:
 		# Maybe queue it
-		return {"r": "already_casting"}
+		return {"r": "already_casting", "id": data.id}
 
 	var success = call("cast_" + data.name, options)
 
 	if not success:
 		# The spell should handle this
-		return {"r": "spell_failed"}
+		return {"r": "spell_failed", "id": data.id}
 
 	$CastDurationTimer.wait_time = data.cast_duration
 	$CastDurationTimer.start()
@@ -262,7 +262,7 @@ func cast_spin(options) -> bool:
 	return true
 
 
-func main_cast_spin(options) -> void:
+func main_cast_spin(_options) -> void:
 	var data = GameData.spell_data["spin"]
 	$SpinArea.start(data.range, self)
 	cast_point_timer.disconnect("timeout", self, "main_cast_spin")
@@ -301,13 +301,16 @@ func die():
 	visible = false
 	dead = true
 	$SpinArea.stop()
+	get_node("/root/GameServer/GameControl").player_dead(int(name))
 	#DEBUG THING
-	yield(get_tree().create_timer(2), "timeout")
-	get_node("/root/GameServer").resurrect_player(int(name), Vector3(0, 0.4, 0))
-	resurrect(Vector3(0, 0.4, 0))
+	# yield(get_tree().create_timer(2), "timeout")
+	# get_node("/root/GameServer").resurrect_player(int(name), Vector3(0, 0.4, 0))
+	# resurrect(Vector3(0, 0.4, 0))
 
 
 func resurrect(pos):
 	global_transform.origin = pos
+	current_target_location = pos
+	face_towards(Vector3.ZERO)
 	visible = true
 	dead = false

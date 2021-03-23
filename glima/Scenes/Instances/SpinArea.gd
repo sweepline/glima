@@ -24,6 +24,7 @@ func start(_range: float, _caster: KinematicBody):
 	set_physics_process(true)
 
 	yield(get_tree().create_timer(GameData.spell_data["spin"].duration), "timeout")
+	stop()
 
 
 func stop():

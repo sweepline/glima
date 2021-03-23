@@ -31,6 +31,7 @@ func connect_to_server():
 
 func _on_connection_succeeded():
 	print("Connected to Authentication hub")
+	rpc_id(1, "set_server_ip_port", IP.get_local_addresses()[0], gameserver.port)
 
 
 func _on_connection_failed():

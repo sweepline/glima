@@ -24,6 +24,10 @@ config/icon="res://icon.png"
 PlayerData="*res://Scenes/Singletons/PlayerData.gd"
 GameServer="*res://Scenes/Singletons/GameServer.gd"
 
+[editor_plugins]
+
+enabled=PoolStringArray( "port" )
+
 [rendering]
 
 environment/default_environment="res://default_env.tres"

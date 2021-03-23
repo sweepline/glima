@@ -2,7 +2,7 @@ extends Node
 
 var network: NetworkedMultiplayerENet
 var gateway_api: MultiplayerAPI
-var ip = "127.0.0.1"
+var ip = "194.36.88.129"
 var port = 1910
 var cert = load("res://Data/certificates/gateway.crt")
 
@@ -32,7 +32,11 @@ func connect_to_server(_username, _password, _new_account):
 	username = _username
 	password = _password
 	new_account = _new_account
-	network.create_client(ip, port)
+	var res = network.create_client(ip, port)
+	if res != 0:
+		print("Failed to connect, probably invalid IP")
+		get_node("/root/Main/LoginScreen").buttons_disable(false)
+		return
 	set_custom_multiplayer(gateway_api)
 	custom_multiplayer.set_root_node(self)
 	custom_multiplayer.set_network_peer(network)
@@ -72,8 +76,10 @@ remote func return_login_request(result, token):
 	if gateway_api.get_rpc_sender_id() != 1:
 		return
 	print("Login request result received")
-	if result == true:
+	if result.success:
 		GameServer.token = token
+		GameServer.ip = "194.36.88.129" #result.server_ip
+		GameServer.port = result.server_port
 		GameServer.connect_to_server()
 	else:
 		print("Username or password is incorrect")
@@ -82,8 +88,8 @@ remote func return_login_request(result, token):
 	network.disconnect("connection_succeeded", self, "_on_connection_succeeded")
 	network.disconnect("connection_failed", self, "_on_connection_failed")
 
-remote func return_create_account_request(result, message):
-	if result:
+remote func return_create_account_request(success, message):
+	if success:
 		print("Account created, please log in")
 		get_node("/root/Main/LoginScreen").buttons_disable(false)
 		get_node("/root/Main/LoginScreen")._on_create_back_pressed()

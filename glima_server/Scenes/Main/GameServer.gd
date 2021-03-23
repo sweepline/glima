@@ -2,12 +2,13 @@ extends Node
 
 var network = NetworkedMultiplayerENet.new()
 var port = 1909
-var max_players = 20
+var max_players = 8
 
 var player_collection = {}
 
 onready var player_verification_process = get_node("PlayerVerification")
 onready var combat_functions = get_node("Combat")
+onready var game_control = get_node("GameControl")
 onready var player_res = preload("res://Scenes/Instances/ServerPlayer.tscn")
 
 var expected_tokens: Array = []
@@ -21,6 +22,7 @@ func start_server():
 	network.create_server(port, max_players)
 	get_tree().set_network_peer(network)
 	print("Server Started on port: ", port)
+	print("IP: ", IP.get_local_addresses()[0])
 
 	network.connect("peer_connected", self, "_on_peer_connected")
 	network.connect("peer_disconnected", self, "_on_peer_disconnected")
@@ -78,11 +80,13 @@ remote func return_token(token):
 func return_token_verification_results(player_id, result):
 	rpc_id(player_id, "return_token_verification_results", result)
 	if result == true:
-		rpc_id(0, "spawn_new_player", player_id, Vector3(0, 0, 0))
+		var spawn_pos = get_node("World/Map/SpawnPoints/FFA/SpawnPoint" + str(player_collection.size())).global_transform.origin
+		game_control.player_data[player_id] = {"spawn_pos": spawn_pos}
+		spawn_player(player_id, spawn_pos)
 		var player_inst = player_res.instance()
 		get_node("World/Map").add_child(player_inst)
 		player_inst.name = str(player_id)
-		player_inst.global_transform.origin = Vector3(0, 0.4, 0)
+		player_inst.global_transform.origin = spawn_pos
 		player_collection[player_id] = player_inst
 
 
@@ -129,6 +133,8 @@ func kill_player(player_id: int, killer_id):
 func resurrect_player(player_id: int, position):
 	rpc_id(0, "resurrect_player", player_id, position, OS.get_system_time_msecs())
 
+func spawn_player(player_id: int, position):
+	rpc_id(0, "spawn_new_player", player_id, position)
 
 remote func fetch_player_stats():
 	var player_id = get_tree().get_rpc_sender_id()

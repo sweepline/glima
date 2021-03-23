@@ -41,6 +41,10 @@ window/size/height=1080
 window/size/test_width=1280
 window/size/test_height=720
 
+[editor_plugins]
+
+enabled=PoolStringArray( "port" )
+
 [input]
 
 main_move={

@@ -32,6 +32,10 @@ remote func authenticate_player(username, password, player_id):
 	var gateway_id = get_tree().get_rpc_sender_id()
 	var result
 	var hashed_password
+
+	# Stop doing this, we should point to the MM server
+	var gameserver = GameServer.gameserverlist.values()[0]
+
 	print("Starting authentication")
 	if not PlayerData.player_data.has(username):
 		print("No user named: ", username)
@@ -47,16 +51,17 @@ remote func authenticate_player(username, password, player_id):
 
 			randomize()
 			token = str(randi()).sha256_text() + str(OS.get_unix_time())
-			var gameserver = "gameserver1"
-			GameServer.distribute_login_token(token, gameserver)
+			# We should actually connect to the mm server here
+			GameServer.distribute_login_token(token, gameserver.id)
 
 	print("Authentication result sent to gateway server")
-	rpc_id(gateway_id, "authentication_result", result, player_id, token)
+	rpc_id(gateway_id, "authentication_result", {"success": result, "server_ip": gameserver.ip, "server_port": gameserver.port}, player_id, token)
 
 remote func create_account(username, password, player_id):
 	var gateway_id = get_tree().get_rpc_sender_id()
 	var result
 	var message
+
 	if PlayerData.player_data.has(username):
 		result = false
 		message = 2

@@ -12,6 +12,8 @@
 [node name="LoginScreen" type="Control"]
 anchor_right = 1.0
 anchor_bottom = 1.0
+margin_top = -0.667419
+margin_bottom = -0.66748
 script = ExtResource( 8 )
 __meta__ = {
 "_edit_use_anchors_": false
@@ -25,8 +27,8 @@ anchor_bottom = 0.5
 margin_left = -200.0
 margin_top = -300.0
 margin_right = 200.0
-margin_bottom = 100.0
-rect_min_size = Vector2( 400, 500 )
+margin_bottom = 300.0
+rect_min_size = Vector2( 400, 600 )
 texture = ExtResource( 6 )
 region_rect = Rect2( 0, 0, 100, 100 )
 patch_margin_left = 7
@@ -102,7 +104,7 @@ text = "Password"
 margin_top = 169.0
 margin_right = 336.0
 margin_bottom = 193.0
-text = "admin"
+text = "adminadmin"
 secret = true
 
 [node name="MarginContainer2" type="MarginContainer" parent="Background/LoginContainer"]
@@ -300,8 +302,38 @@ valign = 1
 __meta__ = {
 "_edit_use_anchors_": false
 }
+
+[node name="GatewayLabel" type="Label" parent="Background"]
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+margin_left = -168.0
+margin_top = -100.667
+margin_right = 168.0
+margin_bottom = -82.6675
+custom_fonts/font = ExtResource( 1 )
+text = "Gateway IP"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Gateway" type="LineEdit" parent="Background"]
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+margin_left = -168.0
+margin_top = -78.061
+margin_right = 168.0
+margin_bottom = -54.061
+text = "194.36.88.129"
+__meta__ = {
+"_edit_use_anchors_": false
+}
 [connection signal="text_entered" from="Background/LoginContainer/Password" to="." method="_on_password_done"]
 [connection signal="pressed" from="Background/LoginContainer/LoginButton" to="." method="_on_login_button_pressed"]
 [connection signal="pressed" from="Background/LoginContainer/CreateAccountButton" to="." method="_on_goto_create_pressed"]
 [connection signal="pressed" from="Background/CreateAccountContainer/ConfirmCreateButton" to="." method="_on_create_account"]
 [connection signal="pressed" from="Background/CreateAccountContainer/BackButton" to="." method="_on_create_back_pressed"]
+[connection signal="text_changed" from="Background/Gateway" to="." method="_on_gateway_ip_changed"]

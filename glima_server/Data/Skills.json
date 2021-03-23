@@ -17,8 +17,8 @@
 	"slash": {
 		"id": 2,
 		"cooldown": 2.0,
-		"cast_point": 0.6,
-		"cast_duration": 1.0
+		"cast_point": 0.4,
+		"cast_duration": 0.8
 	},
 	"stone": {
 		"id": 3,

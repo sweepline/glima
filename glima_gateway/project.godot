@@ -24,6 +24,10 @@ config/icon="res://icon.png"
 Authenticate="*res://Scenes/Singletons/Authenticate.gd"
 Gateway="*res://Scenes/Singletons/Gateway.gd"
 
+[editor_plugins]
+
+enabled=PoolStringArray( "port" )
+
 [rendering]
 
 environment/default_environment="res://default_env.tres"

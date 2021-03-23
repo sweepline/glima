@@ -105,3 +105,15 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 30 )
 
 [node name="SpawnPoint3" type="Spatial" parent="SpawnPoints/FFA"]
 transform = Transform( -1, 0, -3.25841e-07, 0, 1, 0, 3.25841e-07, 0, -1, 0, 0, -30 )
+
+[node name="SpawnPoint4" type="Spatial" parent="SpawnPoints/FFA"]
+transform = Transform( -1, 0, -3.25841e-07, 0, 1, 0, 3.25841e-07, 0, -1, -30, 0, -30 )
+
+[node name="SpawnPoint5" type="Spatial" parent="SpawnPoints/FFA"]
+transform = Transform( -1, 0, -3.25841e-07, 0, 1, 0, 3.25841e-07, 0, -1, 30, 0, 30 )
+
+[node name="SpawnPoint6" type="Spatial" parent="SpawnPoints/FFA"]
+transform = Transform( -1, 0, -3.25841e-07, 0, 1, 0, 3.25841e-07, 0, -1, 30, 0, -30 )
+
+[node name="SpawnPoint7" type="Spatial" parent="SpawnPoints/FFA"]
+transform = Transform( -1, 0, -3.25841e-07, 0, 1, 0, 3.25841e-07, 0, -1, -30, 0, 30 )

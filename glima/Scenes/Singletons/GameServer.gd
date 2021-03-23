@@ -73,6 +73,11 @@ remote func cast_failed(reason):
 	if get_tree().get_rpc_sender_id() != 1:
 		return
 	# Update cd if spells cast failed
+	if reason.r == "cooldown":
+		get_node("/root/Main/World/PlayerController").cooldowns[reason.id] = reason.t - latency / 1000;
+	else:
+		get_node("/root/Main/World/PlayerController").cooldowns[reason.id] = 0;
+
 	print("Could not cast spell: ", reason.r)
 	reason.erase("r")
 	print("Other information: ", reason)
@@ -126,7 +131,8 @@ remote func kill_player(player_id: int, killer_id, time):
 	get_node("/root/Main/World").insert_event(options, time)
 	# TODO: DO THIS AT CORRECT TIME
 	if player_id == get_tree().get_network_unique_id():
-		get_node("/root/Main/World/PlayerController").deactivate()
+		# get_node("/root/Main/World/PlayerController").deactivate()
+		pass
 	if killer_id == get_tree().get_network_unique_id():
 		get_node("/root/Main/World/PlayerController").refresh_cooldowns()
 
@@ -156,7 +162,6 @@ remote func return_server_time(server_time, client_time):
 		return
 	# Actually there might be a difference between to and from server, but eh...
 	latency = (OS.get_system_time_msecs() - client_time) / 2
-	print(server_time)
 	client_clock = server_time + latency
 
 
@@ -199,7 +204,8 @@ remote func return_token_verification_results(result):
 		return
 	if result == true:
 		get_node("/root/Main/LoginScreen").queue_free()
-		print("Succesfull token verification")
+		get_node("/root/Main").set_in_menu(false);
+		print("Successful token verification")
 	else:
 		print("Token verification failed")
 		get_node("/root/Main/LoginScreen").login_button.disabled = false

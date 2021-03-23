@@ -12,6 +12,7 @@ func _ready():
 	spell_data = spell_data_json.result
 	spell_by_id = {}
 	for spell_name in spell_data.keys():
+		spell_data[spell_name].id = int(spell_data[spell_name].id)
 		var spell = spell_data[spell_name]
 		spell_by_id[spell.id] = spell
 		spell_by_id[spell.id].name = spell_name

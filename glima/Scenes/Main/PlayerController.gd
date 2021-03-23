@@ -30,27 +30,41 @@ func activate():
 	set_process(true)
 	set_process_input(true)
 	set_physics_process(true)
+	$SpellUI.visible = true
+	if player != null:
+		yield(get_tree().create_timer(0.2), "timeout")
+		camera_controller.global_transform.origin = player.global_transform.origin
 
 
 func deactivate():
 	set_process_input(false)
 	set_physics_process(false)
 	set_process(false)
+	$SpellUI.visible = false
 
 
 func _ready() -> void:
 	deactivate()
 	click_circle.visible = false
-	#for enemy in get_tree().get_nodes_in_group("enemy"):
-	#	enemy.connect("mouse_entered", self, "set_target", [enemy])
-	#	enemy.connect("mouse_exited", self, "unset_target", [enemy])
 
+func update_cd_ui(i, new_cd):
+	if new_cd == 0:
+		get_node("SpellUI/SpellContainer/" + GameData.spell_by_id[i].name + "/CooldownText").text = ""
+		get_node("SpellUI/SpellContainer/" + GameData.spell_by_id[i].name + "/CooldownOverlay").visible = false
+	else:
+		var cd = new_cd
+		if cd >= 10:
+			cd = int(cd)
+		get_node("SpellUI/SpellContainer/" + GameData.spell_by_id[i].name + "/CooldownText").text = str(cd).left(3)
 
 func _process(delta):
 	for i in range(0, cooldowns.size()):
 		var cooldown = cooldowns[i]
 		if cooldown > 0:
-			cooldowns[i] = max(cooldown - delta, 0)
+			var new_cd = max(cooldown - delta, 0)
+			cooldowns[i] = new_cd
+			update_cd_ui(i, new_cd)
+
 
 
 func _physics_process(_delta):
@@ -169,7 +183,9 @@ func try_cast(spell: String, options = null):
 	$CastDurationTimer.wait_time = data.cast_duration
 	$CastDurationTimer.start()
 	casting = true
-	cooldowns[data.id] = data.cooldown
+	# Add the latency to the server, we would probably even be 2x latency too early
+	cooldowns[data.id] = data.cooldown + GameServer.latency / 1000
+	get_node("SpellUI/SpellContainer/" + data.name + "/CooldownOverlay").visible = true
 
 
 # Shield
@@ -256,3 +272,5 @@ func cast_spin(_opt) -> bool:
 
 func refresh_cooldowns():
 	cooldowns = [0, 0, 0, 0, 0, 0]
+	for i in range(0, cooldowns.size()):
+		update_cd_ui(i, 0)

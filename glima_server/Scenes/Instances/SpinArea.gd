@@ -28,7 +28,6 @@ func start(_range: float, _caster: KinematicBody):
 
 
 func stop():
-	print("STOP")
 	set_physics_process(false)
 	visible = false
 	$CollisionShape.disabled = true

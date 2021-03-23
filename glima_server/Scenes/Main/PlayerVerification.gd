@@ -28,7 +28,7 @@ func verify(player_id, token):
 		var connected_peers = Array(get_tree().get_network_connected_peers())
 		if connected_peers.has(player_id):
 			main_interface.network.disconnect_peer(player_id)
-	
+
 func create_player_container(player_id):
 	var new_player_container = player_container_scene.instance()
 	new_player_container.name = str(player_id)
