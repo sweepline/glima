@@ -80,7 +80,9 @@ remote func return_token(token):
 func return_token_verification_results(player_id, result):
 	rpc_id(player_id, "return_token_verification_results", result)
 	if result == true:
-		var spawn_pos = get_node("World/Map/SpawnPoints/FFA/SpawnPoint" + str(player_collection.size())).global_transform.origin
+		var spawn_pos = get_node(
+			"World/Map/SpawnPoints/FFA/SpawnPoint" + str(player_collection.size())
+		).global_transform.origin
 		game_control.player_data[player_id] = {"spawn_pos": spawn_pos}
 		spawn_player(player_id, spawn_pos)
 		var player_inst = player_res.instance()
@@ -133,8 +135,10 @@ func kill_player(player_id: int, killer_id):
 func resurrect_player(player_id: int, position):
 	rpc_id(0, "resurrect_player", player_id, position, OS.get_system_time_msecs())
 
+
 func spawn_player(player_id: int, position):
 	rpc_id(0, "spawn_new_player", player_id, position)
+
 
 remote func fetch_player_stats():
 	var player_id = get_tree().get_rpc_sender_id()

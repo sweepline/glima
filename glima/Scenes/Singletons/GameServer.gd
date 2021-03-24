@@ -38,7 +38,7 @@ func connect_to_server():
 remote func spawn_new_player(player_id: int, position: Vector3):
 	if get_tree().get_rpc_sender_id() != 1:
 		return
-	get_node("/root/Main/World").spawn_new_player(player_id, Vector2(position.x, position.z))
+	get_node("/root/Main/World").spawn_new_player(player_id, position)
 
 remote func despawn_player(player_id: int):
 	if get_tree().get_rpc_sender_id() != 1:
@@ -74,9 +74,12 @@ remote func cast_failed(reason):
 		return
 	# Update cd if spells cast failed
 	if reason.r == "cooldown":
-		get_node("/root/Main/World/PlayerController").cooldowns[reason.id] = reason.t - latency / 1000;
+		get_node("/root/Main/World/PlayerController").cooldowns[reason.id] = (
+			reason.t
+			- latency / 1000
+		)
 	else:
-		get_node("/root/Main/World/PlayerController").cooldowns[reason.id] = 0;
+		get_node("/root/Main/World/PlayerController").cooldowns[reason.id] = 0
 
 	print("Could not cast spell: ", reason.r)
 	reason.erase("r")
@@ -204,7 +207,7 @@ remote func return_token_verification_results(result):
 		return
 	if result == true:
 		get_node("/root/Main/LoginScreen").queue_free()
-		get_node("/root/Main").set_in_menu(false);
+		get_node("/root/Main").set_in_menu(false)
 		print("Successful token verification")
 	else:
 		print("Token verification failed")

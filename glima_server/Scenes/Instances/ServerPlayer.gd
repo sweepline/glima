@@ -107,11 +107,18 @@ func _on_cast_end():
 	casting = false
 
 
+func cast_from_cast_point(cast_point, spell, options):
+	if cast_point == 0:
+		call(spell, options)
+		return
+	cast_point_timer.wait_time = cast_point
+	cast_point_timer.connect("timeout", self, spell, [options])
+	cast_point_timer.start()
+
+
 func cast_shield(_options) -> bool:
 	var data = GameData.spell_data["shield"]
-	cast_point_timer.wait_time = data.cast_point
-	cast_point_timer.connect("timeout", self, "main_cast_shield", [_options])
-	cast_point_timer.start()
+	cast_from_cast_point(data.cast_point, "main_cast_shield", _options)
 	return true
 
 
@@ -122,7 +129,8 @@ func main_cast_shield(_options) -> void:
 	$ShieldTimer.wait_time = data.duration
 	$ShieldTimer.start()
 	shield_active = true
-	cast_point_timer.disconnect("timeout", self, "main_cast_shield")
+	if cast_point_timer.is_connected("timeout", self, "main_cast_shield"):
+		cast_point_timer.disconnect("timeout", self, "main_cast_shield")
 
 
 func end_shield() -> void:
@@ -136,9 +144,7 @@ func cast_blink(options) -> bool:
 	stop()
 	face_towards(options.p)
 
-	cast_point_timer.wait_time = data.cast_point
-	cast_point_timer.connect("timeout", self, "main_cast_blink", [options])
-	cast_point_timer.start()
+	cast_from_cast_point(data.cast_point, "main_cast_blink", options)
 	return true
 
 
@@ -159,7 +165,8 @@ func main_cast_blink(options) -> void:
 	global_transform.origin = nav.get_closest_point(blink_point)
 
 	global_transform.origin.y = save_y
-	cast_point_timer.disconnect("timeout", self, "main_cast_blink")
+	if cast_point_timer.is_connected("timeout", self, "main_cast_blink"):
+		cast_point_timer.disconnect("timeout", self, "main_cast_blink")
 
 
 func cast_slash(options) -> bool:
@@ -167,9 +174,7 @@ func cast_slash(options) -> bool:
 	stop()
 	face_towards(options.p)
 
-	cast_point_timer.wait_time = data.cast_point
-	cast_point_timer.connect("timeout", self, "main_cast_slash", [options])
-	cast_point_timer.start()
+	cast_from_cast_point(data.cast_point, "main_cast_slash", options)
 	return true
 
 
@@ -181,16 +186,15 @@ func main_cast_slash(options) -> void:
 	var slash_area_inst = slash_area.instance()
 	get_tree().get_root().add_child(slash_area_inst)
 	slash_area_inst.start(global_transform.origin, cast_point, self)
-	cast_point_timer.disconnect("timeout", self, "main_cast_slash")
+	if cast_point_timer.is_connected("timeout", self, "main_cast_slash"):
+		cast_point_timer.disconnect("timeout", self, "main_cast_slash")
 
 
 func cast_stone(_options) -> bool:
 	var data = GameData.spell_data["stone"]
 	stop()
 
-	cast_point_timer.wait_time = data.cast_point
-	cast_point_timer.connect("timeout", self, "main_cast_stone", [_options])
-	cast_point_timer.start()
+	cast_from_cast_point(data.cast_point, "main_cast_stone", _options)
 	return true
 
 
@@ -201,7 +205,8 @@ func main_cast_stone(_options) -> void:
 	$StoneTimer.wait_time = data.duration
 	$StoneTimer.start()
 	stone_active = true
-	cast_point_timer.disconnect("timeout", self, "main_cast_stone")
+	if cast_point_timer.is_connected("timeout", self, "main_cast_stone"):
+		cast_point_timer.disconnect("timeout", self, "main_cast_stone")
 
 
 func end_stone() -> void:
@@ -231,9 +236,7 @@ func cast_dagger(options) -> bool:
 	stop()
 	face_towards(target.global_transform.origin)
 
-	cast_point_timer.wait_time = data.cast_point
-	cast_point_timer.connect("timeout", self, "main_cast_dagger", [options])
-	cast_point_timer.start()
+	cast_from_cast_point(data.cast_point, "main_cast_dagger", options)
 	return true
 
 
@@ -244,7 +247,8 @@ func main_cast_dagger(options) -> void:
 	var dagger_inst = dagger.instance()
 	get_tree().get_root().add_child(dagger_inst)
 	dagger_inst.start(global_transform.origin, target, self)
-	cast_point_timer.disconnect("timeout", self, "main_cast_dagger")
+	if cast_point_timer.is_connected("timeout", self, "main_cast_dagger"):
+		cast_point_timer.disconnect("timeout", self, "main_cast_dagger")
 
 
 func disjoint_dagger():
@@ -256,16 +260,15 @@ func cast_spin(options) -> bool:
 	var data = GameData.spell_data["stone"]
 	stop()
 
-	cast_point_timer.wait_time = data.cast_point
-	cast_point_timer.connect("timeout", self, "main_cast_spin", [options])
-	cast_point_timer.start()
+	cast_from_cast_point(data.cast_point, "main_cast_spin", options)
 	return true
 
 
 func main_cast_spin(_options) -> void:
 	var data = GameData.spell_data["spin"]
 	$SpinArea.start(data.range, self)
-	cast_point_timer.disconnect("timeout", self, "main_cast_spin")
+	if cast_point_timer.is_connected("timeout", self, "main_cast_spin"):
+		cast_point_timer.disconnect("timeout", self, "main_cast_spin")
 
 
 func refresh_spells():

@@ -9,12 +9,36 @@
 config_version=4
 
 _global_script_classes=[ {
+"base": "",
+"class": "EffekseerEffect",
+"language": "NativeScript",
+"path": "res://addons/effekseer/src/EffekseerEffect.gdns"
+}, {
+"base": "Spatial",
+"class": "EffekseerEmitter",
+"language": "NativeScript",
+"path": "res://addons/effekseer/src/EffekseerEmitter.gdns"
+}, {
+"base": "Node2D",
+"class": "EffekseerEmitter2D",
+"language": "NativeScript",
+"path": "res://addons/effekseer/src/EffekseerEmitter2D.gdns"
+}, {
+"base": "Resource",
+"class": "EffekseerResource",
+"language": "NativeScript",
+"path": "res://addons/effekseer/src/EffekseerResource.gdns"
+}, {
 "base": "KinematicBody",
 "class": "PlayerUnit",
 "language": "GDScript",
 "path": "res://Scenes/Instances/PlayerUnit.gd"
 } ]
 _global_script_class_icons={
+"EffekseerEffect": "res://addons/effekseer/icon16.png",
+"EffekseerEmitter": "res://addons/effekseer/icon16.png",
+"EffekseerEmitter2D": "res://addons/effekseer/icon16.png",
+"EffekseerResource": "res://addons/effekseer/icon16.png",
 "PlayerUnit": ""
 }
 
@@ -29,6 +53,7 @@ config/icon="res://icon.png"
 GameServer="*res://Scenes/Singletons/GameServer.gd"
 GameData="*res://Scenes/Singletons/GameData.gd"
 Gateway="*res://Scenes/Singletons/Gateway.gd"
+EffekseerSystem="*res://addons/effekseer/src/EffekseerSystem.gdns"
 
 [debug]
 
@@ -43,7 +68,7 @@ window/size/test_height=720
 
 [editor_plugins]
 
-enabled=PoolStringArray( "port" )
+enabled=PoolStringArray( "effekseer", "port" )
 
 [input]
 

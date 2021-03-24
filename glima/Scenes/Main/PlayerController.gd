@@ -21,6 +21,9 @@ var casting = false
 
 var state_buffer = []
 
+var move_counter: float = 0.0
+var move_tickrate: float = 1 / 10.0
+
 
 func set_player(_player: KinematicBody):
 	player = _player
@@ -47,6 +50,7 @@ func _ready() -> void:
 	deactivate()
 	click_circle.visible = false
 
+
 func update_cd_ui(i, new_cd):
 	if new_cd == 0:
 		get_node("SpellUI/SpellContainer/" + GameData.spell_by_id[i].name + "/CooldownText").text = ""
@@ -55,7 +59,10 @@ func update_cd_ui(i, new_cd):
 		var cd = new_cd
 		if cd >= 10:
 			cd = int(cd)
-		get_node("SpellUI/SpellContainer/" + GameData.spell_by_id[i].name + "/CooldownText").text = str(cd).left(3)
+		get_node("SpellUI/SpellContainer/" + GameData.spell_by_id[i].name + "/CooldownText").text = str(cd).left(
+			3
+		)
+
 
 func _process(delta):
 	for i in range(0, cooldowns.size()):
@@ -65,12 +72,26 @@ func _process(delta):
 			cooldowns[i] = new_cd
 			update_cd_ui(i, new_cd)
 
+	if Input.is_action_just_pressed("main_move"):
+		var m_pos = get_viewport().get_mouse_position()
+		move_player(m_pos, true)
+		move_counter = 0.0
+		print("MOVE_CLICK")
+	elif Input.is_action_pressed("main_move"):
+		move_counter += delta
+		if move_counter >= move_tickrate:
+			move_counter -= move_tickrate
+			var m_pos = get_viewport().get_mouse_position()
+			move_player(m_pos, false)
+			print("MOVE_HOLD")
 
 
 func _physics_process(_delta):
 	var rot_quat = player.global_transform.basis.get_rotation_quat()
 	var state = {"t": GameServer.client_clock, "p": player.global_transform.origin, "r": rot_quat}
 	state_buffer.append(state)
+	if state_buffer.size() > 10:
+		state_buffer.pop_front()
 
 
 func test_print_player_stats(stats):
@@ -85,11 +106,6 @@ func _input(event: InputEvent) -> void:
 	if Input.is_key_pressed(KEY_SHIFT):
 		pass
 		# queue event
-	if event.is_action_pressed("main_move"):
-		if not player.get_node("StoneTimer").is_stopped():
-			player.get_node("StoneTimer").stop()
-			player.end_stone()
-		move_player(m_pos)
 	# abilities
 	if event.is_action_pressed("spell_1"):
 		try_cast("shield")
@@ -114,24 +130,28 @@ func stop_player():
 		target_reticle.green()
 
 
-func move_player(m_pos: Vector2):
+func move_player(m_pos: Vector2, make_circle = true):
 	var result = raycast_from_mouse(m_pos)
 	if casting:
 		# TODO: queue the move
 		return
+	if not player.get_node("StoneTimer").is_stopped():
+		player.get_node("StoneTimer").stop()
+		player.end_stone()
 	if result:
 		player.move_to(result)
 		GameServer.move_command({"type": "move", "pos": result})
 
 		# Make an effect on the point clicked
-		click_circle.global_transform.origin = Vector3(result.x, 0.01, result.z)
-		click_circle.rotation = Vector3(-PI / 2, 0, 0)
-		click_circle.green()
+		if make_circle:
+			click_circle.global_transform.origin = Vector3(result.x, 0.01, result.z)
+			click_circle.rotation = Vector3(-PI / 2, 0, 0)
+			click_circle.green()
 
-		var anim_player = click_circle.get_node("AnimationPlayer")
-		if anim_player.is_playing():
-			anim_player.stop()
-		anim_player.play("scale_down")
+			var anim_player = click_circle.get_node("AnimationPlayer")
+			if anim_player.is_playing():
+				anim_player.stop()
+			anim_player.play("scale_down")
 
 
 func raycast_from_mouse(m_pos: Vector2) -> Vector3:

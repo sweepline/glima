@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=2]
+[gd_scene load_steps=12 format=2]
 
 [ext_resource path="res://Scenes/Instances/PlayerUnit.gd" type="Script" id=1]
 [ext_resource path="res://Materials/BlueUnit.tres" type="Material" id=2]
@@ -7,6 +7,10 @@
 
 [sub_resource type="CylinderShape" id=1]
 radius = 0.5
+
+[sub_resource type="CylinderShape" id=7]
+radius = 1.5
+height = 0.5
 
 [sub_resource type="CapsuleMesh" id=2]
 material = ExtResource( 2 )
@@ -25,6 +29,7 @@ albedo_color = Color( 0.639216, 0.247059, 0.858824, 0.603922 )
 material = SubResource( 5 )
 
 [node name="PlayerUnit" type="KinematicBody"]
+input_ray_pickable = false
 collision_layer = 2
 collision_mask = 2
 script = ExtResource( 1 )
@@ -32,6 +37,13 @@ script = ExtResource( 1 )
 [node name="CollisionShape" type="CollisionShape" parent="."]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0 )
 shape = SubResource( 1 )
+
+[node name="TargetingArea" type="Area" parent="."]
+collision_mask = 0
+
+[node name="TargetingShape" type="CollisionShape" parent="TargetingArea"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 0 )
+shape = SubResource( 7 )
 
 [node name="Spin" type="MeshInstance" parent="."]
 transform = Transform( 1, 0, 0, 0, -1.62921e-07, -1, 0, 1, -1.62921e-07, 0, 2, 0 )
@@ -43,6 +55,7 @@ mesh = SubResource( 2 )
 material/0 = null
 
 [node name="PlayerModel" parent="." instance=ExtResource( 3 )]
+transform = Transform( -1, 0, -3.25841e-07, 0, 1, 0, 3.25841e-07, 0, -1, 0, -0.2, 0 )
 
 [node name="Face" type="MeshInstance" parent="."]
 transform = Transform( 0.503852, 0, 0, 0, 0.503852, 0, 0, 0, 0.503852, 0, 2.839, -0.902 )

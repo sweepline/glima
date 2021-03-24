@@ -85,7 +85,7 @@ func recalculate_nav():
 		return
 	if global_transform.origin.distance_to(current_target_location) < 1:
 		path = []
-		global_transform.origin = current_target_location
+		global_transform.origin = nav.get_closest_point(current_target_location)
 	else:
 		path = nav.get_simple_path(global_transform.origin, current_target_location)
 		path_ind = 0
@@ -102,26 +102,32 @@ func is_moving() -> bool:
 
 
 # The spells to cast (mostly for animations when server comes i guess?)
+func cast_from_cast_point(cast_point, spell, options):
+	if cast_point == 0:
+		call(spell, options)
+		return
+	cast_point_timer.wait_time = cast_point
+	cast_point_timer.connect("timeout", self, spell, [options])
+	cast_point_timer.start()
 
 
-func cast_shield(_options) -> void:
+func cast_shield(options) -> void:
 	var data = GameData.spell_data["shield"]
 	anim_tree.set("parameters/spell_slot/blend_position", 0)
 	anim_tree.set("parameters/cast_spell/active", true)
 
-	cast_point_timer.wait_time = data.cast_point
-	cast_point_timer.connect("timeout", self, "main_cast_shield", [_options])
-	cast_point_timer.start()
+	cast_from_cast_point(data.cast_point, "main_cast_shield", options)
 
 
 # Shield
 func main_cast_shield(_options) -> void:
-	var data = GameData.spell_data["shield"]
+	var _data = GameData.spell_data["shield"]
 
 	$Shield.visible = true
 	shield_active = true
 
-	cast_point_timer.disconnect("timeout", self, "main_cast_shield")
+	if cast_point_timer.is_connected("timeout", self, "main_cast_shield"):
+		cast_point_timer.disconnect("timeout", self, "main_cast_shield")
 
 
 func end_shield(_options) -> void:
@@ -134,50 +140,51 @@ func cast_blink(options) -> void:
 	anim_tree.set("parameters/spell_slot/blend_position", 1)
 	anim_tree.set("parameters/cast_spell/active", true)
 
-	cast_point_timer.wait_time = data.cast_point
-	cast_point_timer.connect("timeout", self, "main_cast_blink", [options])
-	cast_point_timer.start()
+	cast_from_cast_point(data.cast_point, "main_cast_blink", options)
 
 
 # Blink
 func main_cast_blink(_options) -> void:
-	var data = GameData.spell_data["blink"]
-	cast_point_timer.disconnect("timeout", self, "main_cast_blink")
+	var _data = GameData.spell_data["blink"]
+
+	if cast_point_timer.is_connected("timeout", self, "main_cast_blink"):
+		cast_point_timer.disconnect("timeout", self, "main_cast_blink")
 
 
 func cast_slash(options) -> void:
 	var data = GameData.spell_data["slash"]
 	anim_tree.set("parameters/spell_slot/blend_position", 2)
 	anim_tree.set("parameters/cast_spell/active", true)
-	cast_point_timer.wait_time = data.cast_point
-	cast_point_timer.connect("timeout", self, "main_cast_slash", [options])
-	cast_point_timer.start()
+
+	cast_from_cast_point(data.cast_point, "main_cast_slash", options)
 
 
 # Slash
 func main_cast_slash(options) -> void:
-	var data = GameData.spell_data["slash"]
+	var _data = GameData.spell_data["slash"]
 	var cast_pos: Vector3 = options.p
 	var slash_area_inst = slash_area.instance()
 	get_tree().get_root().add_child(slash_area_inst)
 	slash_area_inst.start(global_transform.origin, cast_pos, self)
-	cast_point_timer.disconnect("timeout", self, "main_cast_slash")
+
+	if cast_point_timer.is_connected("timeout", self, "main_cast_slash"):
+		cast_point_timer.disconnect("timeout", self, "main_cast_slash")
 
 
-func cast_stone(_opt) -> void:
+func cast_stone(options) -> void:
 	var data = GameData.spell_data["stone"]
 	anim_tree.set("parameters/stone_timescale/scale", 0)
-	cast_point_timer.wait_time = data.cast_point
-	cast_point_timer.connect("timeout", self, "main_cast_stone", [_opt])
-	cast_point_timer.start()
+
+	cast_from_cast_point(data.cast_point, "main_cast_stone", options)
 
 
 # Stone
 func main_cast_stone(_options) -> void:
-	var data = GameData.spell_data["stone"]
+	var _data = GameData.spell_data["stone"]
 	stone_active = true
 	body.material_override = colors.grey
-	cast_point_timer.disconnect("timeout", self, "main_cast_stone")
+	if cast_point_timer.is_connected("timeout", self, "main_cast_stone"):
+		cast_point_timer.disconnect("timeout", self, "main_cast_stone")
 
 
 func end_stone(_options) -> void:
@@ -196,9 +203,8 @@ func cast_dagger(options) -> void:
 
 	anim_tree.set("parameters/spell_slot/blend_position", 4)
 	anim_tree.set("parameters/cast_spell/active", true)
-	cast_point_timer.wait_time = data.cast_point
-	cast_point_timer.connect("timeout", self, "main_cast_dagger", [options])
-	cast_point_timer.start()
+
+	cast_from_cast_point(data.cast_point, "main_cast_dagger", options)
 
 
 # Dagger
@@ -207,22 +213,24 @@ func main_cast_dagger(options) -> void:
 	var dagger_inst = dagger.instance()
 	get_tree().get_root().add_child(dagger_inst)
 	dagger_inst.start(global_transform.origin, target, self)
-	cast_point_timer.disconnect("timeout", self, "main_cast_dagger")
+	if cast_point_timer.is_connected("timeout", self, "main_cast_dagger"):
+		cast_point_timer.disconnect("timeout", self, "main_cast_dagger")
 
 
-func cast_spin(_opt) -> void:
+func cast_spin(options) -> void:
 	var data = GameData.spell_data["spin"]
 	anim_tree.set("parameters/spell_slot/blend_position", 5)
 	anim_tree.set("parameters/cast_spell/active", true)
-	cast_point_timer.wait_time = data.cast_point
-	cast_point_timer.connect("timeout", self, "main_cast_spin", [_opt])
-	cast_point_timer.start()
+
+	cast_from_cast_point(data.cast_point, "main_cast_spin", options)
 
 
 func main_cast_spin(_options) -> void:
 	var data = GameData.spell_data["spin"]
 	$SpinArea.start(data.range, self)
-	cast_point_timer.disconnect("timeout", self, "main_cast_spin")
+
+	if cast_point_timer.is_connected("timeout", self, "main_cast_spin"):
+		cast_point_timer.disconnect("timeout", self, "main_cast_spin")
 
 
 func hit(_type: String, _caster: String):

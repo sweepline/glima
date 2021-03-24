@@ -8,7 +8,7 @@ var last_world_state = 0
 # Should be kept as
 # [past_past_state, most_recent_past_state, nearest_future_state, any_other_future_state]
 var world_state_buffer: Array = []
-const INTERPOLATION_OFFSET = 50  # Basically the lag compensation
+const INTERPOLATION_OFFSET = 50  # ms everyone else is behind
 var event_buffer: Array = []
 
 
@@ -20,7 +20,7 @@ func _ready():
 	add_child(map)
 
 
-func spawn_new_player(player_id: int, spawn_position: Vector2, spawn_rotation = Vector2(0, 1)):
+func spawn_new_player(player_id: int, spawn_position: Vector3):
 	if map.has_node(str(player_id)):
 		return
 	var new_player = unit_res.instance()
@@ -31,13 +31,14 @@ func spawn_new_player(player_id: int, spawn_position: Vector2, spawn_rotation = 
 		player_controller.activate()
 	else:
 		new_player.add_to_group("enemy")  # TODO: TEAM SETUP
-		new_player.connect("mouse_entered", player_controller, "set_target", [new_player])
-		new_player.connect("mouse_exited", player_controller, "unset_target", [new_player])
+		new_player.get_node("TargetingArea").connect(
+			"mouse_entered", player_controller, "set_target", [new_player]
+		)
+		new_player.get_node("TargetingArea").connect(
+			"mouse_exited", player_controller, "unset_target", [new_player]
+		)
 	map.add_child(new_player)
-	new_player.move_player(
-		Vector3(spawn_position.x, 0.4, spawn_position.y),
-		Quat(0, spawn_rotation.x, 0, spawn_rotation.y)
-	)
+	new_player.move_player(spawn_position, Quat.IDENTITY)
 	new_player.face_towards(Vector3.ZERO)
 
 
@@ -50,6 +51,38 @@ func update_world_state(world_state):
 	if world_state["t"] > last_world_state:
 		last_world_state = world_state["t"]
 		world_state_buffer.append(world_state)
+
+		player_predict_update(world_state)
+
+
+func player_predict_update(newest_world_state):
+	var player_id = get_tree().get_network_unique_id()
+	if not map.has_node(str(player_id)):
+		return
+	var state_buffer = player_controller.state_buffer
+	if state_buffer.size() == 0:
+		return
+
+	while state_buffer.size() > 1 and newest_world_state["t"] > state_buffer[0]["t"]:
+		state_buffer.remove(0)
+	var past_pos: Vector3 = state_buffer[0]["p"]
+	var _past_rot: Quat = state_buffer[0]["r"]
+	var world_pos = newest_world_state[player_id]["p"]
+	var world_rot = newest_world_state[player_id]["r"]
+	if (
+		past_pos.distance_to(world_pos) > 2
+		and (player_controller.cooldowns[1] < GameData.spell_data["blink"].cooldown - 0.15)
+	):
+		# TODO: Lerp this for rubber-banding
+		# Also the player is further ahead than this world
+		print(newest_world_state["t"], ", ", state_buffer[0]["t"], ", ", state_buffer.size())
+		$Circle0.draw_circle(past_pos, 0.5, 0.2)
+		$Circle1.draw_circle(world_pos, 0.5, 0.2)
+		$Circle2.draw_circle(map.get_node(str(player_id)).global_transform.origin, 0.5, 0.2)
+		print("PLAYER REPO, Past = Green, World = Cyan, Current = Yellow")
+		map.get_node(str(player_id)).move_player(world_pos, world_rot)
+		#map.get_node(str(player_id)).move_player(pos.linear_interpolate(world_pos, delta * 2), rot.slerp(world_rot, delta))
+		map.get_node(str(player_id)).recalculate_nav()
 
 
 func _physics_process(_delta):
@@ -70,34 +103,9 @@ func _physics_process(_delta):
 				if not world_state_buffer[1].has(player_id):
 					continue
 
-				# If were interpolating check player against newest world
-				if player_id == get_tree().get_network_unique_id() and map.has_node(str(player_id)):
-					var state_buffer = player_controller.state_buffer
-					# The client might aswell look at the most recent world
-					var newest_world = world_state_buffer.back()
-					while state_buffer.size() > 1 and newest_world["t"] > state_buffer[0]["t"]:
-						state_buffer.remove(0)
-					var pos: Vector3 = state_buffer[0]["p"]
-					var rot: Quat = state_buffer[0]["r"]
-					var world_pos = Vector3(
-						newest_world[player_id]["p"].x, 0.4, newest_world[player_id]["p"].y
-					)
-					var world_rot = Quat(
-						0, newest_world[player_id]["r"].x, 0, newest_world[player_id]["r"].y
-					)
-					if (
-						pos.distance_to(world_pos) > 1
-						and (
-							player_controller.cooldowns[1]
-							< GameData.spell_data["blink"].cooldown - 0.15
-						)
-					):
-						# TODO: Lerp this for rubber-banding
-						print("PLAYER REPOSITIONED, pos: ", pos, " world_pos ", world_pos)
-						map.get_node(str(player_id)).move_player(world_pos, world_rot)
-						#map.get_node(str(player_id)).move_player(pos.linear_interpolate(world_pos, delta * 2), rot.slerp(world_rot, delta))
-						map.get_node(str(player_id)).recalculate_nav()
+				if player_id == get_tree().get_network_unique_id():
 					continue
+
 				if map.has_node(str(player_id)):
 					var new_position: Vector3
 					# If we moved a lot, just let the player teleport
@@ -107,31 +115,21 @@ func _physics_process(_delta):
 						)
 						> 1
 					):
-						new_position = Vector3(
-							world_state_buffer[2][player_id]["p"].x,
-							0.4,
-							world_state_buffer[2][player_id]["p"].y
-						)
+						new_position = world_state_buffer[2][player_id]["p"]
 					else:
-						var tmp_pos: Vector2 = lerp(
+						var tmp_pos: Vector3 = lerp(
 							world_state_buffer[1][player_id]["p"],
 							world_state_buffer[2][player_id]["p"],
 							interpolation_factor
 						)
-						new_position = Vector3(tmp_pos.x, 0.4, tmp_pos.y)
-					var old_rot: Vector2 = world_state_buffer[1][player_id]["r"]
-					var new_rot: Vector2 = world_state_buffer[2][player_id]["r"]
-					var new_basis = Quat(0, old_rot.x, 0, old_rot.y).slerp(
-						Quat(0, new_rot.x, 0, new_rot.y), interpolation_factor
-					)
+						new_position = tmp_pos
+					var old_rot: Quat = world_state_buffer[1][player_id]["r"]
+					var new_rot: Quat = world_state_buffer[2][player_id]["r"]
+					var new_basis = old_rot.slerp(new_rot, interpolation_factor)
 
 					map.get_node(str(player_id)).move_player(new_position, new_basis)
 				else:
-					spawn_new_player(
-						player_id,
-						world_state_buffer[2][player_id]["p"],
-						world_state_buffer[2][player_id]["r"]
-					)
+					spawn_new_player(player_id, world_state_buffer[2][player_id]["p"])
 		elif render_time > world_state_buffer[1]["t"]:
 			# Extrapolate
 			var extrapolation_factor = (
@@ -153,13 +151,11 @@ func _physics_process(_delta):
 						world_state_buffer[1][player_id]["p"]
 						- world_state_buffer[0][player_id]["p"]
 					)
-					var new_position: Vector2 = (
+					var new_position: Vector3 = (
 						world_state_buffer[1][player_id]["p"]
 						+ (position_delta * extrapolation_factor)
 					)
-					map.get_node(str(player_id)).global_transform.origin = Vector3(
-						new_position.x, 0.4, new_position.y
-					)
+					map.get_node(str(player_id)).global_transform.origin = new_position
 
 	# For other global events
 	# It might be better to go through it forwards and stop, depending on size in real world applications
